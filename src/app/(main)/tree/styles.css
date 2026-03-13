@@ -1,0 +1,13 @@
+.react-flow__edges svg {
+  z-index: 10 !important;
+}
+
+.react-flow__node {
+  z-index: 9 !important;
+}
+.context-menu-node {
+  z-index: 11 !important;
+}
+.react-flow__handle.connectablestart.connectableend {
+  opacity: 0 !important;
+}
