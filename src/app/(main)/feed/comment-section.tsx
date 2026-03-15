@@ -3,7 +3,8 @@ import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
-import { Send, User } from "lucide-react";
+import { formatDate } from "@/lib/utils";
+import { Dot, Send, User } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 export default function CommentSection({ postId }: { postId: string }) {
@@ -52,18 +53,16 @@ export default function CommentSection({ postId }: { postId: string }) {
               <User className="h-3 w-3 text-muted-foreground" />
             </div>
             <div className="flex-1">
-              <p className="text-xs font-medium">
-                {c.author?.display_name || c.author?.email?.split("@")[0]}
-              </p>
-              <p className="text-sm">{c.body}</p>
-              <span className="text-xs text-muted-foreground">
-                {new Date(c.created_at).toLocaleDateString("vi-VN", {
-                  day: "numeric",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
+              <div className="flex items-center">
+                <p className="text-xs font-medium">
+                  {c.author?.display_name || c.author?.email?.split("@")[0]}
+                </p>
+                <span className="mx-2">·</span>
+                <span className="text-xs text-muted-foreground">
+                  {formatDate(c.created_at)}
+                </span>
+              </div>
+              <p className="text-sm mt-2">{c.body}</p>
             </div>
           </div>
         ))

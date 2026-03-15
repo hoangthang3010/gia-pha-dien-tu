@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import PostComposer from "@/app/(main)/feed/post-composer";
 import PostCard from "@/app/(main)/feed/post-card";
 import { IPost } from "@/app/(main)/feed/type";
+import { Popover } from "radix-ui";
 
 export default function FeedPage() {
   const [posts, setPosts] = useState<IPost[]>([]);

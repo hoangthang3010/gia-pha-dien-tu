@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
+import { formatDate } from "@/lib/utils";
 import {
   Calendar,
   ChevronDown,
@@ -57,15 +58,11 @@ export default function PostCard({
               </p>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Calendar className="h-3 w-3" />
-                {new Date(post.created_at).toLocaleDateString("vi-VN", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })}
+                {formatDate(post.created_at)}
               </div>
             </div>
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-1 items-center">
             {post.is_pinned && (
               <Badge variant="secondary" className="text-xs">
                 📌 Đã ghim
@@ -73,29 +70,41 @@ export default function PostCard({
             )}
             {(isAdmin || user?.id === post.author_id) && (
               <Popover.Root>
-                <Popover.Trigger>
-                  <EllipsisVertical />
+                <Popover.Trigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <EllipsisVertical className="h-4 w-4" />
+                  </Button>
                 </Popover.Trigger>
-                <Popover.Content>
-                  {isAdmin && (
+
+                <Popover.Portal>
+                  <Popover.Content
+                    side="bottom"
+                    align="end"
+                    className="w-32 p-1 bg-popover border rounded-md shadow-md"
+                  >
+                    {isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={handleTogglePin}
+                      >
+                        {post.is_pinned ? <PinOff /> : <Pin />}
+                        {post.is_pinned ? "Bỏ ghim" : "Ghim"}
+                      </Button>
+                    )}
+
                     <Button
                       variant="ghost"
-                      size="icon"
-                      onClick={handleTogglePin}
-                      title={post.is_pinned ? "Bỏ ghim" : "Ghim"}
+                      size="sm"
+                      className="w-full justify-start text-destructive"
+                      onClick={handleDelete}
                     >
-                      {post.is_pinned ? <PinOff /> : <Pin />}
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Xóa
                     </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleDelete}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </Popover.Content>
+                  </Popover.Content>
+                </Popover.Portal>
               </Popover.Root>
             )}
           </div>

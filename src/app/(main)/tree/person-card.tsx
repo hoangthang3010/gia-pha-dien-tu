@@ -226,7 +226,7 @@ function PersonCard({
               className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-gradient-to-br from-teal-400 to-emerald-500
                             text-white text-[8px] flex items-center justify-center shadow-sm font-bold ring-1 ring-white"
             >
-              Lê
+              Nguyễn
             </span>
           )}
         </div>

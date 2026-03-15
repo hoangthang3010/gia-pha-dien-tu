@@ -38,7 +38,6 @@ export function PersonNode({ data, ...card }: NodeProps) {
     onSetFocus,
     onToggleCollapse,
   } = card;
-  console.log(highlightHandles, focusPerson, data);
 
   return (
     <div
@@ -172,7 +171,7 @@ export function buildFamilyGraph(
       fatherMap[fam.fatherHandle].push(fam);
     }
 
-    fam.children.forEach((c) => allChildren.add(c));
+    fam.children?.forEach((c) => allChildren.add(c));
   });
 
   // ===== Find root (father không phải con ai) =====
@@ -295,6 +294,7 @@ export function buildFamilyGraph(
       type: "person",
     });
   });
+  console.log(nodes, edges);
 
   return { nodes, edges };
 }

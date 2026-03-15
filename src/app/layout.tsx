@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
-import { Inter, Geist } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
-import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const inter = Inter({
   variable: "--font-inter",
@@ -12,9 +9,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Gia phả dòng họ Lê Huy",
+  title: "Gia phả dòng họ Nguyễn Văn",
   description:
-    "Gia phả dòng họ Lê Huy — Quản lý gia phả & kết nối cộng đồng dòng họ",
+    "Gia phả dòng họ Nguyễn Văn — Quản lý gia phả & kết nối cộng đồng dòng họ",
 };
 
 export default function RootLayout({
@@ -23,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
+    <html lang="vi" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
         <Providers>{children}</Providers>
       </body>

@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
+import { useClanStore } from "@/stores/useClanStore";
 
 interface Stats {
   people: number;
@@ -34,8 +35,11 @@ export default function HomePage() {
   });
   const [loading, setLoading] = useState(true);
 
+  const clanId = useClanStore((s) => s.clanId);
+
   useEffect(() => {
     async function fetchStats() {
+      if (!clanId) return;
       try {
         const tables = [
           "people",
@@ -49,7 +53,8 @@ export default function HomePage() {
         for (const t of tables) {
           const { count } = await supabase
             .from(t)
-            .select("*", { count: "exact", head: true });
+            .select("*", { count: "exact", head: true })
+            .eq("clan_id", clanId);
           counts[t] = count || 0;
         }
         setStats(counts as unknown as Stats);
@@ -112,7 +117,7 @@ export default function HomePage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Trang chủ</h1>
         <p className="text-muted-foreground">
-          Chào mừng đến với Gia phả dòng họ Lê Huy
+          Chào mừng đến với Gia phả dòng họ Nguyễn Văn
         </p>
       </div>
 

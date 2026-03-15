@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import B from "./tree-client";
-import A from "./tree-client-normal";
+// import A from "./tree-client-normal";
 import "./styles.css";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export default function TreePage() {
         </div>
       }
     >
-      <A />
+      {/* <A /> */}
       <B />
     </Suspense>
   );

@@ -67,16 +67,52 @@ export async function fetchFamilies(): Promise<TreeFamily[]> {
   return (data || []).map(dbRowToTreeFamily);
 }
 
+export async function fetchClans() {
+  const { data, error } = await supabase.from("clans").select(`*`);
+
+  if (error) throw error;
+
+  return data;
+}
+
+export async function fetchClanMembers() {
+  const { data, error } = await supabase.from("clan_members").select(`
+      role,
+      clan:clans (
+        id,
+        name,
+        description
+      )
+    `);
+
+  if (error) throw error;
+
+  return (
+    data?.map((item) => ({
+      label: item.clan?.name,
+      value: item.clan?.id,
+      role: item.role,
+      description: item.clan?.description,
+    })) || []
+  );
+}
+
 /** Fetch both people and families in parallel */
-export async function fetchTreeData(): Promise<{
+export async function fetchTreeData(clanId: string): Promise<{
   people: TreeNode[];
   families: TreeFamily[];
 }> {
-  const [people, families] = await Promise.all([
-    fetchPeople(),
-    fetchFamilies(),
-  ]);
-  return { people, families };
+  const { data, error } = await supabase.rpc("get_clan_tree", {
+    p_clan_id: clanId,
+  });
+
+  if (error) throw error;
+  const { people, families } = data;
+
+  return {
+    people: (people || []).map(dbRowToTreeNode),
+    families: (families || []).map(dbRowToTreeFamily),
+  };
 }
 
 // ── Write operations (editor mode) ──

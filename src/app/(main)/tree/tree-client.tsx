@@ -4,21 +4,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 import { ContributeDialog } from "@/components/contribute-dialog";
-import {
-  Search,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-  TreePine,
-  Eye,
-  Users,
-  GitBranch,
-  ChevronsDownUp,
-  ChevronsUpDown,
-  Copy,
-  Pencil,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Search, TreePine, Eye, Users, GitBranch, Copy } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -30,19 +16,17 @@ import {
   updatePersonLiving as supaUpdatePersonLiving,
   updatePerson as supaUpdatePerson,
 } from "@/lib/supabase-data";
-import {
-  CARD_W,
-  CARD_H,
-  type TreeNode,
-  type TreeFamily,
-} from "@/lib/tree-layout";
-import { getMockTreeData } from "@/lib/mock-data";
+import { type TreeNode, type TreeFamily } from "@/lib/tree-layout";
 import TreeFlow from "@/app/(main)/tree/tree-flow";
-import { filterFamilyFromFather } from "@/app/(main)/tree/helper";
+import {
+  computePersonGenerations,
+  filterFamilyFromFather,
+} from "@/app/(main)/tree/helper";
 import EditorPanel from "@/app/(main)/tree/editor-panel";
 import FamilyTreeLengend from "@/app/(main)/tree/family-tree-legend";
 import { TreeControls } from "@/app/(main)/tree/tree-controls";
-import { style } from "framer-motion/client";
+import { useTreeStore } from "@/stores/useTreeStore";
+import { shallow } from "zustand/shallow";
 
 type ViewMode = "full" | "ancestor" | "descendant";
 export type ZoomLevel = "full" | "compact" | "mini";
@@ -50,47 +34,18 @@ export type ZoomLevel = "full" | "compact" | "mini";
 // Default depth at which branches auto-collapse in panoramic view (0-indexed: gen 3 = Đời 4)
 const AUTO_COLLAPSE_GEN = 8;
 
-// Compute generations via BFS from root persons (persons not in any family as children)
-function computePersonGenerations(
-  people: TreeNode[],
-  families: TreeFamily[],
-): Map<string, number> {
-  const childOf = new Set<string>();
-  for (const f of families) for (const ch of f.children) childOf.add(ch);
-  const roots = people.filter((p) => p.isPatrilineal && !childOf.has(p.handle));
-  const gens = new Map<string, number>();
-  const familyMap = new Map(families.map((f) => [f.handle, f]));
-  const queue: { handle: string; gen: number }[] = roots.map((r) => ({
-    handle: r.handle,
-    gen: 0,
-  }));
-  while (queue.length > 0) {
-    const { handle, gen } = queue.shift()!;
-    if (gens.has(handle)) continue;
-    gens.set(handle, gen);
-    const person = people.find((p) => p.handle === handle);
-    if (!person) continue;
-    for (const fId of person.families) {
-      const fam = familyMap.get(fId);
-      if (!fam) continue;
-      // Spouse at same gen
-      if (fam.fatherHandle && !gens.has(fam.fatherHandle))
-        gens.set(fam.fatherHandle, gen);
-      if (fam.motherHandle && !gens.has(fam.motherHandle))
-        gens.set(fam.motherHandle, gen);
-      for (const ch of fam.children) {
-        if (!gens.has(ch)) queue.push({ handle: ch, gen: gen + 1 });
-      }
-    }
-  }
-  return gens;
-}
-
 export default function TreeViewPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const treeFlowRef = useRef<unknown>(null);
+
+  const people = useTreeStore((s) => s.people);
+  const families = useTreeStore((s) => s.families);
+  const treeDataStore = useMemo(
+    () => ({ people, families }),
+    [families, people],
+  );
 
   const [treeData, setTreeData] = useState<{
     people: TreeNode[];
@@ -214,44 +169,10 @@ export default function TreeViewPage() {
 
   // Fetch data
   useEffect(() => {
-    const fetchTree = async () => {
-      try {
-        const token = localStorage.getItem("accessToken");
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-        if (token && apiUrl) {
-          const res = await fetch(`${apiUrl}/genealogy/tree`, {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: AbortSignal.timeout(3000),
-          });
-          if (res.ok) {
-            const json = await res.json();
-            // console.log(json.data);
-
-            setTreeData(json.data);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch {
-        /* fallback */
-      }
-      // Load from Supabase
-      try {
-        const data = await fetchTreeData();
-        if (data.people.length > 0) {
-          setTreeData(data);
-          setLoading(false);
-          return;
-        }
-      } catch {
-        /* fallback to mock */
-      }
-      // Fallback: use bundled mock data (demo mode)
-      setTreeData(getMockTreeData());
-      setLoading(false);
-    };
-    fetchTree();
-  }, []);
+    if (!treeDataStore) return;
+    setTreeData(treeDataStore);
+    setLoading(false);
+  }, [treeDataStore]);
 
   // Filtered data for view mode
   // const displayData = useMemo(() => {

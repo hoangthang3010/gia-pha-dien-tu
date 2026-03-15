@@ -123,7 +123,7 @@ function RegisterContent() {
           </div>
         </div>
         <CardTitle className="text-2xl font-bold">
-          Tham gia Gia phả họ Lê
+          Tham gia Gia phả họ Nguyễn
         </CardTitle>
         <CardDescription>
           Đăng ký tham gia nền tảng gia phả dòng họ

@@ -99,7 +99,7 @@ function formatYears(
 export function generateBookData(
   people: TreeNode[],
   families: TreeFamily[],
-  familyName: string = "Lê Huy",
+  familyName: string = "Nguyễn Văn",
 ): BookData {
   const personMap = new Map(people.map((p) => [p.handle, p]));
   const familyMap = new Map(families.map((f) => [f.handle, f]));

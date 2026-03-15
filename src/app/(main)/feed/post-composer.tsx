@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabase";
-import { PenSquare } from "lucide-react";
+import { PenSquare, User } from "lucide-react";
 import { useState } from "react";
 
 export default function PostComposer({
@@ -44,20 +44,28 @@ export default function PostComposer({
   return (
     <Card>
       <CardContent className="pt-4 space-y-3">
-        {expanded && (
-          <Input
-            placeholder="Tiêu đề (tùy chọn)"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        )}
-        <Textarea
-          placeholder="Chia sẻ điều gì đó với dòng họ..."
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          onFocus={() => setExpanded(true)}
-          rows={expanded ? 4 : 2}
-        />
+        <div className="flex gap-2">
+          <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center shrink-0">
+            <User className="h-3 w-3 text-muted-foreground" />
+          </div>
+          <div className="flex-1">
+            {expanded && (
+              <Input
+                className="mb-2"
+                placeholder="Tiêu đề (tùy chọn)"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            )}
+            <Textarea
+              placeholder="Chia sẻ điều gì đó với dòng họ..."
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              onFocus={() => setExpanded(true)}
+              rows={expanded ? 4 : 2}
+            />
+          </div>
+        </div>
         {expanded && (
           <div className="flex justify-end gap-2">
             <Button
