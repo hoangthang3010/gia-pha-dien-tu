@@ -56,7 +56,9 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex items-center gap-2 px-4 py-4 border-b">
         <TreePine className="h-6 w-6 text-primary shrink-0" />
-        {!collapsed && <span className="font-bold text-lg">Gia phả họ Lê</span>}
+        {!collapsed && (
+          <span className="font-bold text-lg">Gia phả họ Nguyễn</span>
+        )}
       </div>
 
       {/* Navigation */}

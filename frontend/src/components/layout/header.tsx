@@ -15,11 +15,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { NotificationBell } from "@/components/notification-bell";
 import { useAuth } from "@/components/auth-provider";
+import { AutoComplete, IOption } from "@/components/ui/autocomplete";
+import { useClanStore } from "@/stores/useClanStore";
+import { useEffect, useState } from "react";
 
 export function Header() {
   const { theme, setTheme } = useTheme();
   const { isLoggedIn, profile, isAdmin, signOut } = useAuth();
   const router = useRouter();
+
+  const [clanValue, setClanValue] = useState<IOption | undefined>(undefined);
+
+  const clanMembers = useClanStore((t) => t.clanMembersList);
+  const setClanId = useClanStore((t) => t.setClanId);
 
   const initials = profile?.display_name
     ? profile.display_name
@@ -35,13 +43,39 @@ export function Header() {
     router.push("/login");
   };
 
+  useEffect(() => {
+    if (!clanMembers?.length) return;
+
+    const first = clanMembers[0];
+
+    setClanValue({
+      label: first.label,
+      value: first.value,
+    });
+  }, [clanMembers]);
+
+  useEffect(() => {
+    if (!clanValue) return;
+    setClanId(clanValue.value);
+  }, [clanValue, setClanId]);
+
   return (
     <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b bg-card/80 backdrop-blur-sm px-4 lg:px-6">
       {/* Left side */}
       <div className="flex items-center gap-2">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          Dòng họ Lê Huy
-        </h2>
+        <h2 className="text-sm font-medium text-muted-foreground">Dòng họ</h2>
+        <AutoComplete
+          options={clanMembers.map((item) => ({
+            label: item.label,
+            value: item.value,
+          }))}
+          value={clanValue}
+          emptyMessage="Không tìm thấy"
+          size="sm"
+          onValueChange={(val) => {
+            setClanValue(val);
+          }}
+        />
       </div>
 
       {/* Right side */}

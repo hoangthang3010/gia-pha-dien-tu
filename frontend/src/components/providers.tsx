@@ -4,6 +4,8 @@ import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { AuthProvider } from "@/components/auth-provider";
+import { TreeLoader } from "@/components/tree-loader";
+import { ClanLoader } from "@/components/clan-loader";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -26,7 +28,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
         enableSystem
         disableTransitionOnChange
       >
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <TreeLoader />
+          <ClanLoader />
+          {children}
+        </AuthProvider>
       </NextThemesProvider>
     </QueryClientProvider>
   );

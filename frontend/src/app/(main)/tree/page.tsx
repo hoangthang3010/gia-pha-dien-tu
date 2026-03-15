@@ -1,5 +1,7 @@
 import { Suspense } from "react";
-import TreeViewPage from "./tree-client";
+import B from "./tree-client";
+// import A from "./tree-client-normal";
+import "./styles.css";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +14,8 @@ export default function TreePage() {
         </div>
       }
     >
-      <TreeViewPage />
+      {/* <A /> */}
+      <B />
     </Suspense>
   );
 }
