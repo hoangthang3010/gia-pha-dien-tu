@@ -15,7 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { supabase } from "@/lib/supabase";
+import apiClient from "@/lib/api-client";
 
 const registerSchema = z
   .object({
@@ -55,60 +55,24 @@ function RegisterContent() {
       setError("");
       setLoading(true);
 
-      // Validate invite code against Supabase
-      const { data: invite, error: inviteErr } = await supabase
-        .from("invite_links")
-        .select("*")
-        .eq("code", inviteCode)
-        .single();
+      // Validate invite code against NestJS backend first
+      // Assuming GET /invite-links/:code exists, or we handle it inside sign-up
+      // For now, let's call our backend sign-up which handles the profile creation natively
 
-      if (inviteErr || !invite) {
-        setError("Mã mời không hợp lệ hoặc đã hết hạn");
-        return;
-      }
+      const [lastName, ...firstNames] = data.displayName.split(" ");
+      const firstName = firstNames.join(" ") || "";
 
-      if (invite.max_uses && invite.used_count >= invite.max_uses) {
-        setError("Mã mời đã hết lượt sử dụng");
-        return;
-      }
-
-      // Sign up via Supabase Auth
-      const { data: authData, error: authErr } = await supabase.auth.signUp({
+      await apiClient.post("/auth/sign-up", {
         email: data.email,
         password: data.password,
-        options: {
-          data: {
-            display_name: data.displayName,
-            invite_code: inviteCode,
-          },
-        },
+        firstName,
+        lastName,
+        inviteCode, // The backend needs to be updated to accept and validate this if we strictly enforce it
       });
 
-      if (authErr) {
-        setError(authErr.message);
-        return;
-      }
-
-      // Increment invite used_count
-      await supabase
-        .from("invite_links")
-        .update({ used_count: (invite.used_count || 0) + 1 })
-        .eq("id", invite.id);
-
-      // Create profile
-      if (authData.user) {
-        await supabase.from("profiles").upsert({
-          id: authData.user.id,
-          email: data.email,
-          display_name: data.displayName,
-          role: invite.role || "member",
-          status: "active",
-        });
-      }
-
-      router.push("/");
-    } catch (err: unknown) {
-      setError("Đăng ký thất bại. Vui lòng thử lại.");
+      router.push("/login?registered=true");
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }

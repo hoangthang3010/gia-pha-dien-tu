@@ -264,7 +264,7 @@ export default function EditorPanel({
                 disabled={saving}
               >
                 <Save className="h-3.5 w-3.5" />
-                {saving ? "Đang lưu..." : "Lưu thay đổi → Supabase"}
+                {saving ? "Đang lưu..." : "Lưu thay đổi"}
               </button>
             )}
           </div>

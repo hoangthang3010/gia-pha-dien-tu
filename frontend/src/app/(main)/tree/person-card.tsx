@@ -43,16 +43,18 @@ function PersonCard({
   onToggleCollapse: (handle: string) => void;
 }) {
   const {
-    gender,
+    x, y,
+    gender = 1,
     isLiving,
     isPatrilineal,
     handle,
     displayName,
     birthYear,
     deathYear,
-    x,
-    y,
-  } = item;
+  } = item || {};
+
+  const generation = item.generation;
+
   const isMale = gender === 1;
   const isFemale = gender === 2;
   const isDead = !isLiving;
@@ -101,11 +103,11 @@ function PersonCard({
   }
 
   // Extract initials
-  const nameParts = displayName.split(" ");
+  const nameParts = displayName?.split(" ");
   const initials =
-    nameParts.length >= 2
-      ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
-      : displayName.slice(0, 2).toUpperCase();
+    nameParts?.length >= 2
+      ? (nameParts[0][0] + nameParts[nameParts?.length - 1][0]).toUpperCase()
+      : displayName?.slice(0, 2).toUpperCase();
 
   const avatarBg = !isPatri
     ? "bg-stone-300 text-stone-600"

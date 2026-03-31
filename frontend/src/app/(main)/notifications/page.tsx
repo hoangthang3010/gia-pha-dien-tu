@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/auth-provider";
-import { supabase } from "@/lib/supabase";
+import { fetchNotifications as fetchNotifs, markNotificationAsRead, markAllNotificationsAsRead } from "@/lib/supabase-data";
 
 interface NotificationItem {
   id: string;
@@ -36,12 +36,7 @@ export default function NotificationsPage() {
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const { data } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(50);
+    const data = await fetchNotifs();
     if (data) setNotifications(data);
     setLoading(false);
   }, [user]);
@@ -54,7 +49,7 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   const markAsRead = async (id: string) => {
-    await supabase.from("notifications").update({ is_read: true }).eq("id", id);
+    await markNotificationAsRead(id);
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
     );
@@ -62,11 +57,7 @@ export default function NotificationsPage() {
 
   const markAllAsRead = async () => {
     if (!user) return;
-    await supabase
-      .from("notifications")
-      .update({ is_read: true })
-      .eq("user_id", user.id)
-      .eq("is_read", false);
+    await markAllNotificationsAsRead();
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 

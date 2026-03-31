@@ -27,7 +27,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/components/auth-provider";
-import { supabase } from "@/lib/supabase";
+import apiClient from "@/lib/api-client";
+import { useClanStore } from "@/stores/clan-store";
 
 interface EventItem {
   id: string;
@@ -69,6 +70,7 @@ function formatTime(dateStr: string) {
 
 function CreateEventDialog({ onCreated }: { onCreated: () => void }) {
   const { user } = useAuth();
+  const clanId = useClanStore((s) => s.clanId);
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState("");
@@ -81,22 +83,22 @@ function CreateEventDialog({ onCreated }: { onCreated: () => void }) {
     if (!title.trim() || !startAt || !user) return;
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("events").insert({
+      await apiClient.post('/events', {
         title: title.trim(),
         description: description.trim() || null,
         start_at: new Date(startAt).toISOString(),
         location: location.trim() || null,
         type,
-        creator_id: user.id,
+        clan_id: clanId,
       });
-      if (!error) {
-        setOpen(false);
-        setTitle("");
-        setDescription("");
-        setStartAt("");
-        setLocation("");
-        onCreated();
-      }
+      setOpen(false);
+      setTitle("");
+      setDescription("");
+      setStartAt("");
+      setLocation("");
+      onCreated();
+    } catch (err: any) {
+      console.error("Failed to create event:", err.message);
     } finally {
       setSubmitting(false);
     }
@@ -208,23 +210,22 @@ function EventCard({ event }: { event: EventItem }) {
 
 export default function EventsPage() {
   const { isLoggedIn } = useAuth();
+  const clanId = useClanStore((s) => s.clanId);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchEvents = useCallback(async () => {
+    if (!clanId) return;
     setLoading(true);
     try {
-      const { data } = await supabase
-        .from("events")
-        .select("*, creator:profiles(display_name, email)")
-        .order("start_at", { ascending: false });
+      const { data } = await apiClient.get(`/events?clanId=${clanId}`);
       if (data) setEvents(data);
-    } catch {
-      /* ignore */
+    } catch (err: any) {
+      console.error("Failed to load events:", err.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [clanId]);
 
   useEffect(() => {
     fetchEvents();

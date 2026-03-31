@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
+import { fetchUnreadNotificationsCount } from "@/lib/supabase-data";
 import { useAuth } from "@/components/auth-provider";
 
 export function NotificationBell() {
@@ -17,11 +17,7 @@ export function NotificationBell() {
 
     const fetchCount = async () => {
       try {
-        const { count } = await supabase
-          .from("notifications")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .eq("is_read", false);
+        const count = await fetchUnreadNotificationsCount();
         setUnreadCount(count || 0);
       } catch {
         /* ignore */

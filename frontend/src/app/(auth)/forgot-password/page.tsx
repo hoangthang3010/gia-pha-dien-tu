@@ -15,7 +15,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { supabase } from "@/lib/supabase";
+import { resetPasswordForEmail } from "@/lib/supabase-data";
 
 const forgotSchema = z.object({
   email: z.string().email("Email không hợp lệ"),
@@ -38,14 +38,9 @@ export default function ForgotPasswordPage() {
     try {
       setError("");
       setLoading(true);
-      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(
-        data.email,
-        {
-          redirectTo: `${window.location.origin}/reset-password`,
-        },
-      );
+      const { error: resetErr } = await resetPasswordForEmail(data.email);
       if (resetErr) {
-        setError(resetErr.message);
+        setError(resetErr);
       } else {
         setSent(true);
       }

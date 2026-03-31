@@ -6,6 +6,7 @@ import { useState } from "react";
 import { AuthProvider } from "@/components/auth-provider";
 import { TreeLoader } from "@/components/tree-loader";
 import { ClanLoader } from "@/components/clan-loader";
+import { AuthGate } from "./auth-gate";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -29,9 +30,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
         disableTransitionOnChange
       >
         <AuthProvider>
-          <TreeLoader />
-          <ClanLoader />
-          {children}
+          <AuthGate>
+            {children}
+          </AuthGate>
         </AuthProvider>
       </NextThemesProvider>
     </QueryClientProvider>

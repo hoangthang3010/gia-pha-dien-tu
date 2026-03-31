@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useClanStore } from "@/stores/useClanStore";
+import { useClanStore } from "@/stores/clan-store";
 import { fetchClanMembers, fetchClans } from "@/lib/supabase-data";
 
 export function ClanLoader() {

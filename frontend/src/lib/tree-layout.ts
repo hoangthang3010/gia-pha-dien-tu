@@ -22,6 +22,7 @@ export interface TreeNode {
   isPatrilineal: boolean;
   families: string[];
   parentFamilies: string[];
+  hidden?: boolean;
 }
 
 export interface TreeFamily {
@@ -31,8 +32,7 @@ export interface TreeFamily {
   children: string[];
 }
 
-export interface PositionedNode {
-  node: TreeNode;
+export interface PositionedNode extends TreeNode {
   x: number;
   y: number;
   generation: number;

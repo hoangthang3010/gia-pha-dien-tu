@@ -18,7 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/lib/supabase";
+import { fetchAllContributions, updateContributionStatus } from "@/lib/supabase-data";
 import { useAuth } from "@/components/auth-provider";
 import { useRouter } from "next/navigation";
 
@@ -52,12 +52,7 @@ export default function AdminEditsPage() {
 
   const fetchContributions = useCallback(async () => {
     setLoading(true);
-    let query = supabase
-      .from("contributions")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (filter !== "all") query = query.eq("status", filter);
-    const { data } = await query;
+    const data = await fetchAllContributions(filter);
     setContributions((data as Contribution[]) || []);
     setLoading(false);
   }, [filter]);
@@ -72,15 +67,12 @@ export default function AdminEditsPage() {
 
   const handleAction = async (id: string, action: "approved" | "rejected") => {
     setProcessingId(id);
-    await supabase
-      .from("contributions")
-      .update({
-        status: action,
-        admin_note: adminNotes[id] || null,
-        reviewed_by: user?.id,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", id);
+    await updateContributionStatus(id, {
+      status: action,
+      admin_note: adminNotes[id] || null,
+      reviewed_by: user?.id,
+      reviewed_at: new Date().toISOString(),
+    });
     setProcessingId(null);
     fetchContributions();
   };

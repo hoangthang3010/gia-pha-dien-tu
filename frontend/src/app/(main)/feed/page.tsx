@@ -3,50 +3,31 @@
 import { useEffect, useState, useCallback } from "react";
 import { Newspaper } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { supabase } from "@/lib/supabase";
+import apiClient from "@/lib/api-client";
 import PostComposer from "@/app/(main)/feed/post-composer";
 import PostCard from "@/app/(main)/feed/post-card";
 import { IPost } from "@/app/(main)/feed/type";
 import { Popover } from "radix-ui";
+import { useClanStore } from "@/stores/clan-store";
 
 export default function FeedPage() {
+  const clanId = useClanStore((s) => s.clanId);
+
   const [posts, setPosts] = useState<IPost[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchPosts = useCallback(async () => {
+    if (!clanId) return;
     setLoading(true);
     try {
-      const { data } = await supabase
-        .from("posts")
-        .select("*, author:profiles(email, display_name, role)")
-        .eq("status", "published")
-        .order("is_pinned", { ascending: false })
-        .order("created_at", { ascending: false });
-
-      if (data) {
-        // Get comment counts
-        const postIds = data.map((p: IPost) => p.id);
-        if (postIds.length > 0) {
-          const { data: counts } = await supabase
-            .from("comments")
-            .select("post_id")
-            .in("post_id", postIds);
-          const countMap: Record<string, number> = {};
-          counts?.forEach((c: { post_id: string }) => {
-            countMap[c.post_id] = (countMap[c.post_id] || 0) + 1;
-          });
-          data.forEach((p: IPost) => {
-            p.comment_count = countMap[p.id] || 0;
-          });
-        }
-        setPosts(data);
-      }
-    } catch {
-      /* ignore */
+      const { data } = await apiClient.get(`/posts?clanId=${clanId}`);
+      if (data) setPosts(data);
+    } catch (error: any) {
+      console.error("Failed to load posts:", error.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [clanId]);
 
   useEffect(() => {
     fetchPosts();

@@ -87,6 +87,7 @@ export const AutoComplete = ({
   );
 
   const displayValue = inputValue || selected?.label || "";
+  console.log(displayValue);
 
   return (
     <CommandPrimitive onKeyDown={handleKeyDown}>
@@ -124,7 +125,6 @@ export const AutoComplete = ({
               <CommandGroup>
                 {options.map((option) => {
                   const isSelected = selected?.value === option.value;
-
                   return (
                     <CommandItem
                       key={option.value}

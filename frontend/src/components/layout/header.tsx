@@ -16,8 +16,18 @@ import {
 import { NotificationBell } from "@/components/notification-bell";
 import { useAuth } from "@/components/auth-provider";
 import { AutoComplete, IOption } from "@/components/ui/autocomplete";
-import { useClanStore } from "@/stores/useClanStore";
-import { useEffect, useState } from "react";
+import { useClanStore } from "@/stores/clan-store";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxTrigger,
+  ComboboxValue,
+} from "@/components/ui/combobox";
 
 export function Header() {
   const { theme, setTheme } = useTheme();
@@ -42,29 +52,38 @@ export function Header() {
     await signOut();
     router.push("/login");
   };
+  const clanMemberOpt = useMemo(() => {
+    return clanMembers.map((item) => ({
+      label: item.label,
+      value: item.value,
+    }));
+  }, [clanMembers]);
 
   useEffect(() => {
-    if (!clanMembers?.length) return;
+    if (!clanMemberOpt?.length) return;
+    console.log(clanMemberOpt);
 
-    const first = clanMembers[0];
+    const first = clanMemberOpt[0];
 
-    setClanValue({
-      label: first.label,
-      value: first.value,
-    });
-  }, [clanMembers]);
+    setClanValue(first);
+  }, [clanMemberOpt]);
 
   useEffect(() => {
     if (!clanValue) return;
     setClanId(clanValue.value);
   }, [clanValue, setClanId]);
+  console.log(clanValue);
+
+  const selectedLabel = useMemo(() => {
+    return clanMemberOpt.find((c) => c.value === clanValue?.value)?.label;
+  }, [clanMemberOpt, clanValue]);
 
   return (
     <header className="sticky top-0 z-50 flex h-14 items-center justify-between border-b bg-card/80 backdrop-blur-sm px-4 lg:px-6">
       {/* Left side */}
       <div className="flex items-center gap-2">
         <h2 className="text-sm font-medium text-muted-foreground">Dòng họ</h2>
-        <AutoComplete
+        {/* <AutoComplete
           options={clanMembers.map((item) => ({
             label: item.label,
             value: item.value,
@@ -75,7 +94,37 @@ export function Header() {
           onValueChange={(val) => {
             setClanValue(val);
           }}
-        />
+        /> */}
+        <Combobox />
+        <Combobox
+          value={clanValue}
+          items={clanMemberOpt}
+          onValueChange={setClanValue}
+        >
+          <ComboboxTrigger
+            render={
+              <Button
+                variant="outline"
+                className="w-64 justify-between font-normal"
+              >
+                <ComboboxValue placeholder="Chọn dòng họ">
+                  {selectedLabel}
+                </ComboboxValue>
+              </Button>
+            }
+          />
+          <ComboboxContent>
+            <ComboboxInput showTrigger={false} placeholder="Search" />
+            <ComboboxEmpty>No items found.</ComboboxEmpty>
+            <ComboboxList>
+              {(item) => (
+                <ComboboxItem key={item.value} value={item}>
+                  {item.label}
+                </ComboboxItem>
+              )}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
       </div>
 
       {/* Right side */}

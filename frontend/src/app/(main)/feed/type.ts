@@ -3,7 +3,7 @@ export interface IPost {
   author_id: string;
   type: string;
   title: string | null;
-  body: string;
+  content: string;
   is_pinned: boolean;
   status: string;
   created_at: string;
@@ -15,7 +15,7 @@ export interface IPost {
 export interface IComment {
   id: string;
   author_id: string;
-  body: string;
+  content: string;
   parent_id: string | null;
   created_at: string;
   author?: { email: string; display_name: string | null };

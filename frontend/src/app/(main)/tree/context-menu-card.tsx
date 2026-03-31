@@ -79,7 +79,7 @@ export default function ContextMenuCard({ data }: { data: any }) {
             >
               {displayName
                 .split(" ")
-                .map((w) => w[0])
+                .map((w: string) => w[0])
                 .join("")
                 .slice(0, 2)}
             </div>

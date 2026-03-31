@@ -4,7 +4,7 @@ import { useState } from "react";
 import { X, Send, MessageSquarePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/lib/supabase";
+import { createContribution } from "@/lib/supabase-data";
 import { useAuth } from "@/components/auth-provider";
 
 const CONTRIBUTION_FIELDS = [
@@ -89,7 +89,7 @@ export function ContributeDialog({
     setSending(true);
     setError("");
 
-    const { error: insertError } = await supabase.from("contributions").insert({
+    const { error: insertError } = await createContribution({
       author_id: user.id,
       author_email: profile?.email || user.email || "",
       person_handle: personHandle,
@@ -105,7 +105,7 @@ export function ContributeDialog({
     setSending(false);
 
     if (insertError) {
-      setError(insertError.message);
+      setError(insertError);
     } else {
       setSent(true);
     }

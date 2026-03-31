@@ -2,7 +2,7 @@ import { IComment } from "@/app/(main)/feed/type";
 import { useAuth } from "@/components/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/lib/supabase";
+import apiClient from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 import { Dot, Send, User } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -15,13 +15,14 @@ export default function CommentSection({ postId }: { postId: string }) {
 
   const fetchComments = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("comments")
-      .select("*, author:profiles(email, display_name)")
-      .eq("post_id", postId)
-      .order("created_at", { ascending: true });
-    if (data) setComments(data);
-    setLoading(false);
+    try {
+      const { data } = await apiClient.get(`/comments?postId=${postId}`);
+      if (data) setComments(data);
+    } catch (err: any) {
+      console.error("Failed to load comments:", err.message);
+    } finally {
+      setLoading(false);
+    }
   }, [postId]);
 
   useEffect(() => {
@@ -31,14 +32,15 @@ export default function CommentSection({ postId }: { postId: string }) {
 
   const handleSubmit = async () => {
     if (!newComment.trim() || !user) return;
-    const { error } = await supabase.from("comments").insert({
-      post_id: postId,
-      author_id: user.id,
-      body: newComment.trim(),
-    });
-    if (!error) {
+    try {
+      await apiClient.post("/comments", {
+        post_id: postId,
+        content: newComment.trim(),
+      });
       setNewComment("");
       fetchComments();
+    } catch (err: any) {
+      console.error("Failed to post comment:", err.message);
     }
   };
 
@@ -62,7 +64,7 @@ export default function CommentSection({ postId }: { postId: string }) {
                   {formatDate(c.created_at)}
                 </span>
               </div>
-              <p className="text-sm mt-2">{c.body}</p>
+              <p className="text-sm mt-2">{c.content}</p>
             </div>
           </div>
         ))

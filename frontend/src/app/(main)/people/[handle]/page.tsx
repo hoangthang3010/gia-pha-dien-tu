@@ -37,13 +37,9 @@ export default function PersonProfilePage() {
   useEffect(() => {
     const fetchPerson = async () => {
       try {
-        const { supabase } = await import("@/lib/supabase");
-        const { data, error } = await supabase
-          .from("people")
-          .select("*")
-          .eq("handle", handle)
-          .single();
-        if (!error && data) {
+        const { default: apiClient } = await import("@/lib/api-client");
+        const { data } = await apiClient.get(`/people/${handle}`);
+        if (data) {
           const row = data as Record<string, unknown>;
           setPerson({
             handle: row.handle as string,

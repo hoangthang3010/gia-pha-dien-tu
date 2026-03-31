@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/components/auth-provider";
-import { supabase } from "@/lib/supabase";
+import apiClient from "@/lib/api-client";
 
 interface MediaItem {
   id: string;
@@ -56,14 +56,15 @@ export default function MediaLibraryPage() {
 
   const fetchMedia = useCallback(async (state?: string) => {
     setLoading(true);
-    let query = supabase
-      .from("media")
-      .select("*, uploader:profiles(display_name, email)")
-      .order("created_at", { ascending: false });
-    if (state && state !== "all") query = query.eq("state", state);
-    const { data } = await query;
-    if (data) setItems(data);
-    setLoading(false);
+    try {
+      const url = state && state !== "all" ? `/media?state=${state}` : "/media";
+      const { data } = await apiClient.get(url);
+      if (data) setItems(data);
+    } catch (err: any) {
+      console.error("Failed to load media:", err.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -75,14 +76,15 @@ export default function MediaLibraryPage() {
     if (!file || !user) return;
     setUploading(true);
     try {
-      const { error } = await supabase.from("media").insert({
+      await apiClient.post("/media", {
         file_name: file.name,
         mime_type: file.type,
         file_size: file.size,
         state: "PENDING",
-        uploader_id: user.id,
       });
-      if (!error) fetchMedia(tab === "all" ? undefined : tab);
+      fetchMedia(tab === "all" ? undefined : tab);
+    } catch (err: any) {
+      console.error("Failed to upload media:", err.message);
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -91,8 +93,12 @@ export default function MediaLibraryPage() {
 
   const handleAction = async (id: string, action: "approve" | "reject") => {
     const newState = action === "approve" ? "PUBLISHED" : "REJECTED";
-    await supabase.from("media").update({ state: newState }).eq("id", id);
-    fetchMedia(tab === "all" ? undefined : tab);
+    try {
+      await apiClient.patch(`/media/${id}`, { state: newState });
+      fetchMedia(tab === "all" ? undefined : tab);
+    } catch (err: any) {
+      console.error("Failed to update media status:", err.message);
+    }
   };
 
   const formatSize = (bytes: number | null) => {

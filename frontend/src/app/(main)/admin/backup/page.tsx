@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { supabase } from "@/lib/supabase";
+import { createDatabaseBackup, fetchDatabaseStats } from "@/lib/supabase-data";
 import { useAuth } from "@/components/auth-provider";
 
 export default function BackupPage() {
@@ -24,17 +24,8 @@ export default function BackupPage() {
   const createBackup = async () => {
     setCreating(true);
     try {
-      // Export all data from Supabase
-      const { data: people } = await supabase.from("people").select("*");
-      const { data: families } = await supabase.from("families").select("*");
-      const { data: profiles } = await supabase.from("profiles").select("*");
-
-      const backup = {
-        exported_at: new Date().toISOString(),
-        people: people || [],
-        families: families || [],
-        profiles: profiles || [],
-      };
+      const backup = await createDatabaseBackup();
+      if (!backup) throw new Error("Failed to create backup");
 
       // Download as JSON
       const blob = new Blob([JSON.stringify(backup, null, 2)], {
@@ -91,22 +82,7 @@ function DatabaseStats() {
 
   useEffect(() => {
     async function load() {
-      const tables = [
-        "people",
-        "families",
-        "profiles",
-        "posts",
-        "comments",
-        "events",
-        "notifications",
-      ];
-      const counts: Record<string, number> = {};
-      for (const t of tables) {
-        const { count } = await supabase
-          .from(t)
-          .select("*", { count: "exact", head: true });
-        counts[t] = count || 0;
-      }
+      const counts = await fetchDatabaseStats();
       setStats(counts);
       setLoading(false);
     }

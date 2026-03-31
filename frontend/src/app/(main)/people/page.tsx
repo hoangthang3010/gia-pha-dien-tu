@@ -38,23 +38,18 @@ export default function PeopleListPage() {
   useEffect(() => {
     const fetchPeople = async () => {
       try {
-        const { supabase } = await import("@/lib/supabase");
-        const { data, error } = await supabase
-          .from("people")
-          .select(
-            "handle, display_name, gender, birth_year, death_year, is_living, is_privacy_filtered",
-          )
-          .order("display_name", { ascending: true });
-        if (!error && data) {
+        const { default: apiClient } = await import("@/lib/api-client");
+        const { data } = await apiClient.get("/people");
+        if (data) {
           setPeople(
-            data.map((row: Record<string, unknown>) => ({
-              handle: row.handle as string,
-              displayName: row.display_name as string,
-              gender: row.gender as number,
-              birthYear: row.birth_year as number | undefined,
-              deathYear: row.death_year as number | undefined,
-              isLiving: row.is_living as boolean,
-              isPrivacyFiltered: row.is_privacy_filtered as boolean,
+            data.map((row: any) => ({
+              handle: row.handle,
+              displayName: row.display_name,
+              gender: row.gender,
+              birthYear: row.birth_year,
+              deathYear: row.death_year,
+              isLiving: row.is_living,
+              isPrivacyFiltered: row.is_privacy_filtered,
             })),
           );
         }

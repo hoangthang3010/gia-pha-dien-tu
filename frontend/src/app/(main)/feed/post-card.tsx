@@ -4,7 +4,7 @@ import { useAuth } from "@/components/auth-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { supabase } from "@/lib/supabase";
+import apiClient from "@/lib/api-client";
 import { formatDate } from "@/lib/utils";
 import {
   Calendar,
@@ -30,16 +30,21 @@ export default function PostCard({
   const [showComments, setShowComments] = useState(false);
 
   const handleDelete = async () => {
-    const { error } = await supabase.from("posts").delete().eq("id", post.id);
-    if (!error) onRefresh();
+    try {
+      await apiClient.delete(`/posts/${post.id}`);
+      onRefresh();
+    } catch (err: any) {
+      console.error("Failed to delete post:", err.message);
+    }
   };
 
   const handleTogglePin = async () => {
-    const { error } = await supabase
-      .from("posts")
-      .update({ is_pinned: !post.is_pinned })
-      .eq("id", post.id);
-    if (!error) onRefresh();
+    try {
+      await apiClient.patch(`/posts/${post.id}`, { is_pinned: !post.is_pinned });
+      onRefresh();
+    } catch (err: any) {
+      console.error("Failed to pin post:", err.message);
+    }
   };
 
   return (

@@ -25,7 +25,7 @@ import {
 import EditorPanel from "@/app/(main)/tree/editor-panel";
 import FamilyTreeLengend from "@/app/(main)/tree/family-tree-legend";
 import { TreeControls } from "@/app/(main)/tree/tree-controls";
-import { useTreeStore } from "@/stores/useTreeStore";
+import { useTreeStore } from "@/stores/tree-store";
 import { shallow } from "zustand/shallow";
 
 type ViewMode = "full" | "ancestor" | "descendant";
@@ -38,7 +38,7 @@ export default function TreeViewPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const treeFlowRef = useRef<unknown>(null);
+  const treeFlowRef = useRef<any>(null);
 
   const people = useTreeStore((s) => s.people);
   const families = useTreeStore((s) => s.families);
@@ -81,8 +81,8 @@ export default function TreeViewPage() {
     treeFlowRef.current?.fitView?.();
   };
 
-  const filterFamilyFromFatherAndFitView = async (fatherId) => {
-    await filterFamilyFromFather(fatherId, treeData?.families, setTreeData);
+  const filterFamilyFromFatherAndFitView = async (fatherId: string) => {
+    await filterFamilyFromFather(fatherId, treeData?.families || [], setTreeData as any);
     fitAll();
   };
 
@@ -334,7 +334,7 @@ export default function TreeViewPage() {
         return;
       }
 
-      treeFlowRef.current?.setNodes((nds) => nds.concat(newNode));
+      treeFlowRef.current?.setNodes((nds: any[]) => nds.concat(newNode));
     },
     [copyTreeLink, editorMode, router],
   );
@@ -365,7 +365,8 @@ export default function TreeViewPage() {
     setViewMode(mode);
     // Auto-collapse based on view mode
     if (mode === "full") {
-      filterFamilyFromFatherAndFitView(treeData?.people[0].handle);
+      const handle = treeData?.people[0]?.handle;
+      if (handle) filterFamilyFromFatherAndFitView(handle);
     } else if (mode === "descendant") {
       const person = focusPerson || treeData?.people[0]?.handle;
       if (person) {
@@ -562,13 +563,13 @@ export default function TreeViewPage() {
               setTreeData((prev) =>
                 prev
                   ? {
-                      ...prev,
-                      families: prev.families.map((f) =>
-                        f.handle === familyHandle
-                          ? { ...f, children: newOrder }
-                          : f,
-                      ),
-                    }
+                    ...prev,
+                    families: prev.families.map((f) =>
+                      f.handle === familyHandle
+                        ? { ...f, children: newOrder }
+                        : f,
+                    ),
+                  }
                   : null,
               );
               supaUpdateFamilyChildren(familyHandle, newOrder);
@@ -596,9 +597,9 @@ export default function TreeViewPage() {
                 const families = prev.families.map((f) =>
                   f.handle === familyHandle
                     ? {
-                        ...f,
-                        children: f.children.filter((c) => c !== childHandle),
-                      }
+                      ...f,
+                      children: f.children.filter((c) => c !== childHandle),
+                    }
                     : f,
                 );
                 supaRemoveChild(childHandle, familyHandle, prev.families);
@@ -609,11 +610,11 @@ export default function TreeViewPage() {
               setTreeData((prev) =>
                 prev
                   ? {
-                      ...prev,
-                      people: prev.people.map((p) =>
-                        p.handle === handle ? { ...p, isLiving } : p,
-                      ),
-                    }
+                    ...prev,
+                    people: prev.people.map((p) =>
+                      p.handle === handle ? { ...p, isLiving } : p,
+                    ),
+                  }
                   : null,
               );
               supaUpdatePersonLiving(handle, isLiving);

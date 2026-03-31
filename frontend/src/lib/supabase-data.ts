@@ -1,253 +1,172 @@
 /**
- * Supabase data layer for the genealogy tree
- * Replaces localStorage-based persistence with Supabase PostgreSQL
+ * API data layer for the genealogy tree
+ * Replaces Supabase SDK with Axios Client for NestJS Backend
  */
-import { supabase } from "./supabase";
+import apiClient from "./api-client";
 import type { TreeNode, TreeFamily } from "./tree-layout";
 
 export type { TreeNode, TreeFamily };
 
-// ── Convert snake_case DB rows to camelCase ──
-
-function dbRowToTreeNode(row: Record<string, unknown>): TreeNode {
-  return {
-    handle: row.handle as string,
-    displayName: row.display_name as string,
-    gender: row.gender as number,
-    birthYear: row.birth_year as number | undefined,
-    deathYear: row.death_year as number | undefined,
-    generation: row.generation as number,
-    isLiving: row.is_living as boolean,
-    isPrivacyFiltered: row.is_privacy_filtered as boolean,
-    isPatrilineal: row.is_patrilineal as boolean,
-    families: (row.families as string[]) || [],
-    parentFamilies: (row.parent_families as string[]) || [],
-  };
-}
-
-function dbRowToTreeFamily(row: Record<string, unknown>): TreeFamily {
-  return {
-    handle: row.handle as string,
-    fatherHandle: row.father_handle as string | undefined,
-    motherHandle: row.mother_handle as string | undefined,
-    children: (row.children as string[]) || [],
-  };
-}
-
 // ── Read operations ──
 
-/** Fetch all people from Supabase */
+/** Fetch all people from NestJS */
 export async function fetchPeople(): Promise<TreeNode[]> {
-  const { data, error } = await supabase
-    .from("people")
-    .select(
-      "handle, display_name, gender, birth_year, death_year, generation, is_living, is_privacy_filtered, is_patrilineal, families, parent_families",
-    )
-    .order("generation")
-    .order("handle");
-
-  if (error) {
+  try {
+    const { data } = await apiClient.get('/people');
+    return (data || []).map((row: any) => ({
+      ...row,
+      displayName: row.display_name,
+      birthYear: row.birth_year,
+      deathYear: row.death_year,
+      isLiving: row.is_living,
+      isPrivacyFiltered: row.is_privacy_filtered,
+      isPatrilineal: row.is_patrilineal,
+      parentFamilies: row.parent_families || [],
+      families: row.families || [],
+    }));
+  } catch (error: any) {
     console.error("Failed to fetch people:", error.message);
     return [];
   }
-  return (data || []).map(dbRowToTreeNode);
 }
 
-/** Fetch all families from Supabase */
+/** Fetch all families from NestJS */
 export async function fetchFamilies(): Promise<TreeFamily[]> {
-  const { data, error } = await supabase
-    .from("families")
-    .select("handle, father_handle, mother_handle, children")
-    .order("handle");
-
-  if (error) {
+  try {
+    const { data } = await apiClient.get('/families');
+    return (data || []).map((row: any) => ({
+      ...row,
+      fatherHandle: row.father_handle,
+      motherHandle: row.mother_handle,
+      children: row.children || [],
+    }));
+  } catch (error: any) {
     console.error("Failed to fetch families:", error.message);
     return [];
   }
-  return (data || []).map(dbRowToTreeFamily);
 }
 
 export async function fetchClans() {
-  const { data, error } = await supabase.from("clans").select(`*`);
-
-  if (error) throw error;
-
-  return data;
+  try {
+    const { data } = await apiClient.get('/clans');
+    return data;
+  } catch (error) {
+    throw error;
+  }
 }
 
 export async function fetchClanMembers() {
-  const { data, error } = await supabase.from("clan_members").select(`
-      role,
-      clan:clans (
-        id,
-        name,
-        description
-      )
-    `);
-
-  if (error) throw error;
-
-  return (
-    data?.map((item) => ({
-      label: item.clan?.name,
-      value: item.clan?.id,
-      role: item.role,
-      description: item.clan?.description,
-    })) || []
-  );
+  try {
+    const { data } = await apiClient.get('/clan-members');
+    return (
+      data?.map((item: any) => ({
+        label: item.clan?.name,
+        value: item.clan?.id,
+        role: item.role,
+        description: item.clan?.description,
+      })) || []
+    );
+  } catch (error) {
+    throw error;
+  }
 }
 
 /** Fetch both people and families in parallel */
-export async function fetchTreeData(clanId: string): Promise<{
+export async function fetchTreeData(clanId?: string): Promise<{
   people: TreeNode[];
   families: TreeFamily[];
 }> {
-  const { data, error } = await supabase.rpc("get_clan_tree", {
-    p_clan_id: clanId,
-  });
+  console.log(clanId);
 
-  if (error) throw error;
-  const { people, families } = data;
+  try {
+    // If we have a specific endpoint or use Promise.all
+    const [pRes, fRes] = await Promise.all([
+      apiClient.get(clanId ? `/people?clanId=${clanId}` : '/people'),
+      apiClient.get(clanId ? `/families?clanId=${clanId}` : '/families')
+    ]);
 
-  return {
-    people: (people || []).map(dbRowToTreeNode),
-    families: (families || []).map(dbRowToTreeFamily),
-  };
+    return {
+      people: (pRes.data || []).map((row: any) => ({
+        ...row,
+        displayName: row.display_name,
+        birthYear: row.birth_year,
+        deathYear: row.death_year,
+        isLiving: row.is_living,
+        isPrivacyFiltered: row.is_privacy_filtered,
+        isPatrilineal: row.is_patrilineal,
+        parentFamilies: row.parent_families || [],
+        families: row.families || [],
+      })),
+      families: (fRes.data || []).map((row: any) => ({
+        ...row,
+        fatherHandle: row.father_handle,
+        motherHandle: row.mother_handle,
+        children: row.children || [],
+      })),
+    };
+  } catch (error) {
+    throw error;
+  }
 }
 
 // ── Write operations (editor mode) ──
 
-/** Update children order for a family */
 export async function updateFamilyChildren(
   familyHandle: string,
   newChildrenOrder: string[],
 ): Promise<void> {
-  const { error } = await supabase
-    .from("families")
-    .update({ children: newChildrenOrder })
-    .eq("handle", familyHandle);
-
-  if (error) console.error("Failed to update family children:", error.message);
+  try {
+    await apiClient.patch(`/families/${familyHandle}`, { children: newChildrenOrder });
+  } catch (error: any) {
+    console.error("Failed to update family children:", error.message);
+  }
 }
 
-/** Move a child from one family to another */
 export async function moveChildToFamily(
   childHandle: string,
   fromFamilyHandle: string,
   toFamilyHandle: string,
   currentFamilies: TreeFamily[],
 ): Promise<void> {
-  const fromFam = currentFamilies.find((f) => f.handle === fromFamilyHandle);
-  const toFam = currentFamilies.find((f) => f.handle === toFamilyHandle);
-
-  const updates: Promise<unknown>[] = [];
-
-  // Update families.children on both families
-  if (fromFam) {
-    updates.push(
-      updateFamilyChildren(
-        fromFamilyHandle,
-        fromFam.children.filter((ch) => ch !== childHandle),
-      ),
-    );
+  // Ideally this complex transaction is handled by a single NestJS endpoint
+  // e.g. PUT /families/move-child
+  try {
+    await apiClient.post('/families/move-child', {
+      childHandle,
+      fromFamilyHandle,
+      toFamilyHandle
+    });
+  } catch (error: any) {
+    console.error("Failed to move child:", error.message);
   }
-  if (toFam) {
-    updates.push(
-      updateFamilyChildren(toFamilyHandle, [
-        ...toFam.children.filter((ch) => ch !== childHandle),
-        childHandle,
-      ]),
-    );
-  }
-
-  // Update people.parent_families on the child
-  const { data: personData } = await supabase
-    .from("people")
-    .select("parent_families")
-    .eq("handle", childHandle)
-    .single();
-
-  if (personData) {
-    const currentPF = (personData.parent_families as string[]) || [];
-    const newPF = [
-      ...currentPF.filter((pf) => pf !== fromFamilyHandle),
-      toFamilyHandle,
-    ];
-    updates.push(
-      (async () => {
-        await supabase
-          .from("people")
-          .update({
-            parent_families: newPF,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("handle", childHandle);
-      })(),
-    );
-  }
-
-  await Promise.all(updates);
 }
 
-/** Remove a child from a family */
 export async function removeChildFromFamily(
   childHandle: string,
   familyHandle: string,
   currentFamilies: TreeFamily[],
 ): Promise<void> {
-  const fam = currentFamilies.find((f) => f.handle === familyHandle);
-  const updates: Promise<unknown>[] = [];
-
-  if (fam) {
-    updates.push(
-      updateFamilyChildren(
-        familyHandle,
-        fam.children.filter((ch) => ch !== childHandle),
-      ),
-    );
+  try {
+    await apiClient.post('/families/remove-child', {
+      childHandle,
+      familyHandle
+    });
+  } catch (error: any) {
+    console.error("Failed to remove child:", error.message);
   }
-
-  // Also update people.parent_families on the child
-  const { data: personData } = await supabase
-    .from("people")
-    .select("parent_families")
-    .eq("handle", childHandle)
-    .single();
-
-  if (personData) {
-    const currentPF = (personData.parent_families as string[]) || [];
-    const newPF = currentPF.filter((pf) => pf !== familyHandle);
-    updates.push(
-      (async () => {
-        await supabase
-          .from("people")
-          .update({
-            parent_families: newPF,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("handle", childHandle);
-      })(),
-    );
-  }
-
-  await Promise.all(updates);
 }
 
-/** Update a person's isLiving status */
 export async function updatePersonLiving(
   handle: string,
   isLiving: boolean,
 ): Promise<void> {
-  const { error } = await supabase
-    .from("people")
-    .update({ is_living: isLiving })
-    .eq("handle", handle);
-
-  if (error)
+  try {
+    await apiClient.patch(`/people/${handle}`, { is_living: isLiving });
+  } catch (error: any) {
     console.error("Failed to update person living status:", error.message);
+  }
 }
 
-/** Update a person's editable fields */
 export async function updatePerson(
   handle: string,
   fields: {
@@ -264,32 +183,25 @@ export async function updatePerson(
     notes?: string | null;
   },
 ): Promise<void> {
-  // Convert camelCase → snake_case for DB
-  const dbFields: Record<string, unknown> = {};
-  if (fields.displayName !== undefined)
-    dbFields.display_name = fields.displayName;
-  if (fields.birthYear !== undefined) dbFields.birth_year = fields.birthYear;
-  if (fields.deathYear !== undefined) dbFields.death_year = fields.deathYear;
-  if (fields.isLiving !== undefined) dbFields.is_living = fields.isLiving;
-  if (fields.phone !== undefined) dbFields.phone = fields.phone;
-  if (fields.email !== undefined) dbFields.email = fields.email;
-  if (fields.currentAddress !== undefined)
-    dbFields.current_address = fields.currentAddress;
-  if (fields.hometown !== undefined) dbFields.hometown = fields.hometown;
-  if (fields.occupation !== undefined) dbFields.occupation = fields.occupation;
-  if (fields.education !== undefined) dbFields.education = fields.education;
-  if (fields.notes !== undefined) dbFields.notes = fields.notes;
-  dbFields.updated_at = new Date().toISOString();
-
-  const { error } = await supabase
-    .from("people")
-    .update(dbFields)
-    .eq("handle", handle);
-
-  if (error) console.error("Failed to update person:", error.message);
+  try {
+    await apiClient.patch(`/people/${handle}`, {
+      display_name: fields.displayName,
+      birth_year: fields.birthYear,
+      death_year: fields.deathYear,
+      is_living: fields.isLiving,
+      phone: fields.phone,
+      email: fields.email,
+      current_address: fields.currentAddress,
+      hometown: fields.hometown,
+      occupation: fields.occupation,
+      education: fields.education,
+      notes: fields.notes,
+    });
+  } catch (error: any) {
+    console.error("Failed to update person:", error.message);
+  }
 }
 
-/** Add a new person to the tree */
 export async function addPerson(person: {
   handle: string;
   displayName: string;
@@ -301,57 +213,238 @@ export async function addPerson(person: {
   families?: string[];
   parentFamilies?: string[];
 }): Promise<{ error: string | null }> {
-  const { error } = await supabase.from("people").insert({
-    handle: person.handle,
-    display_name: person.displayName,
-    gender: person.gender,
-    generation: person.generation,
-    birth_year: person.birthYear || null,
-    death_year: person.deathYear || null,
-    is_living: person.isLiving ?? true,
-    is_privacy_filtered: false,
-    is_patrilineal: person.gender === 1,
-    families: person.families || [],
-    parent_families: person.parentFamilies || [],
-  });
-
-  if (error) {
+  try {
+    await apiClient.post('/people', {
+      handle: person.handle,
+      display_name: person.displayName,
+      gender: person.gender,
+      generation: person.generation,
+      birth_year: person.birthYear,
+      death_year: person.deathYear,
+      is_living: person.isLiving,
+      families: person.families,
+      parent_families: person.parentFamilies,
+    });
+    return { error: null };
+  } catch (error: any) {
     console.error("Failed to add person:", error.message);
     return { error: error.message };
   }
-  return { error: null };
 }
 
-/** Delete a person from the tree */
 export async function deletePerson(
   handle: string,
 ): Promise<{ error: string | null }> {
-  const { error } = await supabase.from("people").delete().eq("handle", handle);
-
-  if (error) {
+  try {
+    await apiClient.delete(`/people/${handle}`);
+    return { error: null };
+  } catch (error: any) {
     console.error("Failed to delete person:", error.message);
     return { error: error.message };
   }
-  return { error: null };
 }
 
-/** Add a new family */
 export async function addFamily(family: {
   handle: string;
   fatherHandle?: string;
   motherHandle?: string;
   children?: string[];
 }): Promise<{ error: string | null }> {
-  const { error } = await supabase.from("families").insert({
-    handle: family.handle,
-    father_handle: family.fatherHandle || null,
-    mother_handle: family.motherHandle || null,
-    children: family.children || [],
-  });
-
-  if (error) {
+  try {
+    await apiClient.post('/families', {
+      handle: family.handle,
+      father_handle: family.fatherHandle,
+      mother_handle: family.motherHandle,
+      children: family.children,
+    });
+    return { error: null };
+  } catch (error: any) {
     console.error("Failed to add family:", error.message);
     return { error: error.message };
   }
-  return { error: null };
+}
+
+export async function fetchUnreadNotificationsCount(): Promise<number> {
+  try {
+    const { data } = await apiClient.get('/notifications/unread-count');
+    return data.count || 0;
+  } catch (error) {
+    return 0;
+  }
+}
+
+export async function createContribution(payload: any): Promise<{ error: string | null }> {
+  try {
+    await apiClient.post('/contributions', payload);
+    return { error: null };
+  } catch (error: any) {
+    console.error("Failed to create contribution:", error.message);
+    return { error: error.message };
+  }
+}
+
+export async function fetchDashboardStats(clanId: string): Promise<any> {
+  try {
+    const { data } = await apiClient.get(`/clans/${clanId}/stats`);
+    return data;
+  } catch (error) {
+    return { people: 0, families: 0, posts: 0, events: 0, media: 0, clan_members: 0 };
+  }
+}
+
+export async function fetchNotifications(): Promise<any[]> {
+  try {
+    const { data } = await apiClient.get('/notifications');
+    return data || [];
+  } catch (error) {
+    return [];
+  }
+}
+
+export async function markNotificationAsRead(id: string): Promise<void> {
+  try {
+    await apiClient.patch(`/notifications/${id}`, { is_read: true });
+  } catch (error) {
+    console.error("Failed to mark notification as read", error);
+  }
+}
+
+export async function markAllNotificationsAsRead(): Promise<void> {
+  try {
+    await apiClient.post('/notifications/mark-all-read');
+  } catch (error) {
+    console.error("Failed to mark all notifications as read", error);
+  }
+}
+
+export async function fetchDirectoryMembers(clan_id: string): Promise<any[]> {
+  try {
+    const { data } = await apiClient.get('/profiles?status=active&clanId=' + clan_id);
+    return data || [];
+  } catch (error) {
+    console.error("Failed to fetch directory members", error);
+    return [];
+  }
+}
+
+export async function fetchDirectoryMember(id: string): Promise<any | null> {
+  try {
+    const { data } = await apiClient.get(`/profiles/${id}`);
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch directory member", error);
+    return null;
+  }
+}
+
+// --- Admin Users ---
+export async function fetchAllProfiles(): Promise<any[]> {
+  try {
+    const { data } = await apiClient.get('/profiles');
+    return data || [];
+  } catch (error) {
+    return [];
+  }
+}
+
+export async function updateProfileRole(id: string, role: string): Promise<void> {
+  try {
+    await apiClient.patch(`/profiles/${id}`, { role });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+export async function updateProfileStatus(id: string, status: string): Promise<void> {
+  try {
+    await apiClient.patch(`/profiles/${id}`, { status });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+export async function fetchInviteLinks(): Promise<any[]> {
+  try {
+    const { data } = await apiClient.get('/invite-links');
+    return data || [];
+  } catch (error) {
+    return [];
+  }
+}
+
+export async function createInviteLink(payload: any): Promise<any | null> {
+  try {
+    const { data } = await apiClient.post('/invite-links', payload);
+    return data;
+  } catch (error) {
+    return null;
+  }
+}
+
+export async function deleteInviteLink(id: string): Promise<void> {
+  try {
+    await apiClient.delete(`/invite-links/${id}`);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// --- Admin Edits ---
+export async function fetchAllContributions(filter?: string): Promise<any[]> {
+  try {
+    const params = filter && filter !== 'all' ? { status: filter } : {};
+    const { data } = await apiClient.get('/contributions', { params });
+    return data || [];
+  } catch (error) {
+    return [];
+  }
+}
+
+export async function updateContributionStatus(id: string, payload: any): Promise<void> {
+  try {
+    await apiClient.patch(`/contributions/${id}`, payload);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// --- Auth ---
+export async function resetPasswordForEmail(email: string): Promise<{ error: string | null }> {
+  try {
+    await apiClient.post('/auth/forgot-password', { email });
+    return { error: null };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}
+
+// --- Admin System ---
+export async function createDatabaseBackup(): Promise<any> {
+  try {
+    const { data } = await apiClient.get('/admin/backup');
+    return data;
+  } catch (error) {
+    console.error("Failed to create backup", error);
+    return null;
+  }
+}
+
+export async function fetchDatabaseStats(): Promise<Record<string, number>> {
+  try {
+    const { data } = await apiClient.get('/admin/stats');
+    return data || {};
+  } catch (error) {
+    console.error("Failed to fetch db stats", error);
+    return {};
+  }
+}
+
+export async function fetchAuditLogs(): Promise<any[]> {
+  try {
+    const { data } = await apiClient.get('/admin/audit-logs');
+    return data || [];
+  } catch (error) {
+    console.error("Failed to fetch audit logs", error);
+    return [];
+  }
 }

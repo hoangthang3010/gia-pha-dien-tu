@@ -24,7 +24,7 @@ import "@xyflow/react/dist/style.css";
 import { MemoPersonCard } from "@/app/(main)/tree/person-card";
 import ContextMenuCard from "@/app/(main)/tree/context-menu-card";
 
-export function PersonNode({ data, ...card }: NodeProps) {
+export function PersonNode({ data, ...card }: any) {
   const {
     highlightHandles,
     focusPerson,
@@ -116,7 +116,7 @@ interface LayoutedPerson {
   };
 }
 
-interface FamilyNodeData {
+interface FamilyNodeData extends Record<string, unknown> {
   label: string;
 }
 
@@ -281,7 +281,7 @@ export function buildFamilyGraph(
   dfsPerson(root, 0);
 
   // ===== Convert persons to nodes =====
-  persons.forEach(({ ...node }) => {
+  persons.forEach((node: any) => {
     const { handle, hidden } = node;
     const pos = positionMap[handle];
 
@@ -294,8 +294,6 @@ export function buildFamilyGraph(
       type: "person",
     });
   });
-  console.log(nodes, edges);
-
   return { nodes, edges };
 }
 
@@ -314,8 +312,8 @@ const TreeFlow = forwardRef<TreeFlowRef, any>(function TreeFlow(
     [treeData?.families, treeData?.people],
   );
 
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
 
   useEffect(() => {
     setNodes(initialNodes || []);
@@ -323,7 +321,7 @@ const TreeFlow = forwardRef<TreeFlowRef, any>(function TreeFlow(
   }, [initialNodes, initialEdges, setNodes, setEdges]);
 
   const onConnect = useCallback(
-    (params) => setEdges((eds) => addEdge(params, eds)),
+    (params: any) => setEdges((eds) => addEdge(params, eds)),
     [],
   );
 
@@ -332,7 +330,7 @@ const TreeFlow = forwardRef<TreeFlowRef, any>(function TreeFlow(
   };
 
   const nodeTypes = {
-    person: (data) => <PersonNode data={data} {...card} />,
+    person: (data: any) => <PersonNode data={data} {...card} />,
     "context-menu": ContextMenuCard,
   };
 
@@ -342,12 +340,13 @@ const TreeFlow = forwardRef<TreeFlowRef, any>(function TreeFlow(
       setNodes(initialNodes || []);
       setEdges(initialEdges || []);
     },
-    ...rf,
+    fit: () => (rf as any)?.fitView?.(),
+    ...(rf || {}),
   }));
 
   return (
     <ReactFlow
-      onInit={setRf}
+      onInit={(instance: any) => setRf(instance)}
       nodes={nodes}
       edges={edges}
       edgeTypes={edgeTypes}

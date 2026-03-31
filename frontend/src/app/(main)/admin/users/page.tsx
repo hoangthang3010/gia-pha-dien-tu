@@ -46,7 +46,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/components/auth-provider";
-import { supabase } from "@/lib/supabase";
+import { fetchAllProfiles, updateProfileRole, updateProfileStatus, fetchInviteLinks, createInviteLink, deleteInviteLink } from "@/lib/supabase-data";
 
 const ROLE_COLORS: Record<string, string> = {
   admin: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
@@ -98,11 +98,8 @@ export default function AdminUsersPage() {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: true });
-      if (!error && data) setUsers(data);
+      const data = await fetchAllProfiles();
+      if (data) setUsers(data);
     } catch {
       /* ignore */
     } finally {
@@ -113,11 +110,8 @@ export default function AdminUsersPage() {
   // Fetch invite links
   const fetchInvites = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from("invite_links")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (!error && data) setInvites(data);
+      const data = await fetchInviteLinks();
+      if (data) setInvites(data);
     } catch {
       /* ignore */
     }
@@ -133,38 +127,29 @@ export default function AdminUsersPage() {
   // Create invite link
   const handleCreateInvite = useCallback(async () => {
     const code = generateCode();
-    const { data, error } = await supabase
-      .from("invite_links")
-      .insert({
-        code,
-        role: inviteRole,
-        max_uses: inviteMaxUses,
-      })
-      .select()
-      .single();
-    if (!error && data) {
+    const data = await createInviteLink({
+      code,
+      role: inviteRole,
+      max_uses: inviteMaxUses,
+    });
+    if (data) {
       setInvites((prev) => [data, ...prev]);
     }
   }, [inviteRole, inviteMaxUses]);
 
   // Delete invite link
   const handleDeleteInvite = useCallback(async (id: string) => {
-    const { error } = await supabase.from("invite_links").delete().eq("id", id);
-    if (!error) setInvites((prev) => prev.filter((inv) => inv.id !== id));
+    await deleteInviteLink(id);
+    setInvites((prev) => prev.filter((inv) => inv.id !== id));
   }, []);
 
   // Change user role
   const handleChangeRole = useCallback(
     async (userId: string, newRole: string) => {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ role: newRole })
-        .eq("id", userId);
-      if (!error) {
-        setUsers((prev) =>
-          prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)),
-        );
-      }
+      await updateProfileRole(userId, newRole);
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)),
+      );
     },
     [],
   );
@@ -173,15 +158,10 @@ export default function AdminUsersPage() {
   const handleToggleStatus = useCallback(
     async (userId: string, currentStatus: string) => {
       const newStatus = currentStatus === "active" ? "suspended" : "active";
-      const { error } = await supabase
-        .from("profiles")
-        .update({ status: newStatus })
-        .eq("id", userId);
-      if (!error) {
-        setUsers((prev) =>
-          prev.map((u) => (u.id === userId ? { ...u, status: newStatus } : u)),
-        );
-      }
+      await updateProfileStatus(userId, newStatus);
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, status: newStatus } : u)),
+      );
     },
     [],
   );

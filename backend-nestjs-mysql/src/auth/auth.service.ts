@@ -1,0 +1,142 @@
+import {
+  Injectable,
+  ConflictException,
+  BadRequestException,
+  UnauthorizedException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcrypt';
+import * as jwt from 'jsonwebtoken';
+import * as crypto from 'crypto';
+import { Response } from 'express';
+import { User } from '../users/user.entity';
+import { Session } from '../sessions/session.entity';
+import { Repository } from 'typeorm';
+
+const ACCESS_TOKEN_TTL = '2m';
+const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000; // 14 ngày
+
+const isProd = process.env.NODE_ENV === 'production';
+
+@Injectable()
+export class AuthService {
+  constructor(
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(Session)
+    private readonly sessionRepository: Repository<Session>,
+  ) {}
+
+  async signUp(
+    username: string,
+    password: string,
+    email: string,
+    firstName: string,
+    lastName: string,
+  ): Promise<void> {
+    if (!username || !password || !email || !firstName || !lastName) {
+      throw new BadRequestException(
+        'Không thể thiếu username, password, email, firstName, và lastName',
+      );
+    }
+
+    const duplicate = await this.userRepository.findOne({ where: { username } });
+    if (duplicate) {
+      throw new ConflictException('username đã tồn tại');
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = this.userRepository.create({
+      username,
+      hashedPassword,
+      email,
+      displayName: `${firstName} ${lastName}`,
+    });
+    await this.userRepository.save(user);
+  }
+
+  async signIn(username: string, password: string, res: Response): Promise<void> {
+    if (!username || !password) {
+      throw new BadRequestException('Thiếu username hoặc password.');
+    }
+
+    const user = await this.userRepository.findOne({ where: { username } });
+    if (!user) {
+      throw new UnauthorizedException('username hoặc password không chính xác');
+    }
+
+    const passwordCorrect = await bcrypt.compare(password, user.hashedPassword);
+    if (!passwordCorrect) {
+      throw new UnauthorizedException('username hoặc password không chính xác');
+    }
+
+    const accessToken = jwt.sign({ userId: user.id }, process.env.ACCESS_TOKEN_SECRET!, {
+      expiresIn: ACCESS_TOKEN_TTL,
+    });
+
+    const refreshToken = crypto.randomBytes(64).toString('hex');
+
+    const session = this.sessionRepository.create({
+      userId: user.id,
+      refreshToken,
+      expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL),
+    });
+    await this.sessionRepository.save(session);
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      maxAge: REFRESH_TOKEN_TTL,
+    });
+
+    res.status(200).json({
+      message: `User ${user.displayName} đã logged in!`,
+      accessToken,
+    });
+  }
+
+  async signOut(refreshToken: string | undefined, res: Response): Promise<void> {
+    if (refreshToken) {
+      await this.sessionRepository.delete({ refreshToken });
+      res.clearCookie('refreshToken');
+    }
+    res.sendStatus(204);
+  }
+
+  async refresh(refreshToken: string | undefined, res: Response): Promise<void> {
+    if (!refreshToken) {
+      throw new UnauthorizedException('Token không tồn tại.');
+    }
+
+    const session = await this.sessionRepository.findOne({
+      where: { refreshToken },
+    });
+    if (!session) {
+      throw new ForbiddenException('Token không hợp lệ hoặc đã hết hạn');
+    }
+
+    if (session.expiresAt < new Date()) {
+      throw new ForbiddenException('Token đã hết hạn.');
+    }
+
+    const newRefreshToken = crypto.randomBytes(64).toString('hex');
+    session.refreshToken = newRefreshToken;
+    session.expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL);
+    await this.sessionRepository.save(session);
+
+    const accessToken = jwt.sign({ userId: session.userId }, process.env.ACCESS_TOKEN_SECRET!, {
+      expiresIn: ACCESS_TOKEN_TTL,
+    });
+
+    res.cookie('refreshToken', newRefreshToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
+      maxAge: REFRESH_TOKEN_TTL,
+    });
+
+    res.status(200).json({ accessToken });
+  }
+}

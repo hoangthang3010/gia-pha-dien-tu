@@ -1,11 +1,11 @@
 import { TreeFamily, TreeNode } from "@/lib/tree-layout";
 
-export function getFamilyFromFather(personId, families) {
-  const wives = new Set();
-  const children = new Set();
-  const daughtersInLaw = new Set();
+export function getFamilyFromFather(personId: string, families: TreeFamily[]) {
+  const wives = new Set<string>();
+  const children = new Set<string>();
+  const daughtersInLaw = new Set<string>();
 
-  function collectDescendants(fatherId) {
+  function collectDescendants(fatherId: string) {
     families.forEach((f) => {
       if (f.fatherHandle === fatherId) {
         if (f.motherHandle) wives.add(f.motherHandle);
@@ -33,13 +33,17 @@ export function getFamilyFromFather(personId, families) {
 
   return {
     husband: [personId],
-    wives: [...wives],
-    children: [...children],
-    daughtersInLaw: [...daughtersInLaw],
+    wives: [...Array.from(wives)],
+    children: [...Array.from(children)],
+    daughtersInLaw: [...Array.from(daughtersInLaw)],
   };
 }
 
-export const filterFamilyFromFather = (person, families, setTreeData) => {
+export const filterFamilyFromFather = (
+  person: string,
+  families: TreeFamily[],
+  setTreeData: React.Dispatch<React.SetStateAction<{ people: TreeNode[]; families: TreeFamily[] }>>
+) => {
   const result = getFamilyFromFather(person, families);
 
   setTreeData((data) => {

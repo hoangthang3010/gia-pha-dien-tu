@@ -1,4 +1,4 @@
-// stores/useTreeStore.ts
+// stores/tree-store.ts
 import { create } from "zustand";
 
 type TreeStore = {

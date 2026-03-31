@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Send, Trash2, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
+import apiClient from "@/lib/api-client";
 import { useAuth } from "@/components/auth-provider";
 
 interface Comment {
@@ -27,12 +27,12 @@ export function CommentSection({ personHandle }: CommentSectionProps) {
   const [sending, setSending] = useState(false);
 
   const fetchComments = useCallback(async () => {
-    const { data } = await supabase
-      .from("comments")
-      .select("*")
-      .eq("person_handle", personHandle)
-      .order("created_at", { ascending: true });
-    setComments((data as Comment[]) || []);
+    try {
+      const { data } = await apiClient.get(`/comments?personHandle=${personHandle}`);
+      setComments((data as Comment[]) || []);
+    } catch (err) {
+      console.error("Failed to fetch comments", err);
+    }
     setLoading(false);
   }, [personHandle]);
 
@@ -43,22 +43,30 @@ export function CommentSection({ personHandle }: CommentSectionProps) {
   const handleSubmit = async () => {
     if (!content.trim() || !user) return;
     setSending(true);
-    await supabase.from("comments").insert({
-      author_id: user.id,
-      author_email: profile?.email || user.email || "",
-      author_name:
-        profile?.display_name || user.email?.split("@")[0] || "Ẩn danh",
-      person_handle: personHandle,
-      content: content.trim(),
-    });
-    setContent("");
+    try {
+      await apiClient.post("/comments", {
+        author_id: user.id,
+        author_email: profile?.email || user.email || "",
+        author_name:
+          profile?.display_name || user.email?.split("@")[0] || "Ẩn danh",
+        person_handle: personHandle,
+        content: content.trim(),
+      });
+      setContent("");
+    } catch (err) {
+      console.error("Failed to submit comment", err);
+    }
     setSending(false);
     fetchComments();
   };
 
   const handleDelete = async (commentId: string) => {
-    await supabase.from("comments").delete().eq("id", commentId);
-    fetchComments();
+    try {
+      await apiClient.delete(`/comments/${commentId}`);
+      fetchComments();
+    } catch (err) {
+      console.error("Failed to delete comment", err);
+    }
   };
 
   const timeAgo = (dateStr: string) => {

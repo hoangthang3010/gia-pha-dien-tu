@@ -6,7 +6,7 @@ import { ArrowLeft, User, Mail, Calendar, Shield, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
+import { fetchDirectoryMember } from "@/lib/supabase-data";
 
 export default function MemberDetailPage() {
   const params = useParams();
@@ -17,11 +17,7 @@ export default function MemberDetailPage() {
   const fetchMember = useCallback(async () => {
     if (!params.id) return;
     setLoading(true);
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", params.id)
-      .single();
+    const data = await fetchDirectoryMember(params.id as string);
     if (data) setMember(data);
     setLoading(false);
   }, [params.id]);

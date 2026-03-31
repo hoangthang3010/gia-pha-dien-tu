@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
+import { fetchDirectoryMembers } from "@/lib/supabase-data";
+import { useClanStore } from "@/stores/clan-store";
 
 interface DirectoryMember {
   id: string;
@@ -21,29 +22,30 @@ interface DirectoryMember {
 
 export default function DirectoryPage() {
   const router = useRouter();
+  const clanId = useClanStore((state) => state.clanId);
   const [members, setMembers] = useState<DirectoryMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  const fetchMembers = useCallback(async () => {
+  const fetchMembers = useCallback(async (clan_id: string) => {
     setLoading(true);
     try {
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("status", "active")
-        .order("created_at", { ascending: true });
+      const data = await fetchDirectoryMembers(clan_id);
       if (data) setMembers(data);
     } catch {
       /* ignore */
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [clanId]);
 
   useEffect(() => {
-    fetchMembers();
-  }, [fetchMembers]);
+    if (!clanId) {
+      setLoading(false)
+      return
+    }
+    fetchMembers(clanId);
+  }, [fetchMembers, clanId]);
 
   const filtered = members.filter(
     (m) =>

@@ -17,7 +17,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/auth-provider";
-import { supabase } from "@/lib/supabase";
+import apiClient from "@/lib/api-client";
+import { useClanStore } from "@/stores/clan-store";
 
 const typeLabels: Record<string, { label: string; emoji: string }> = {
   MEMORIAL: { label: "Giỗ", emoji: "🕯️" },
@@ -51,6 +52,7 @@ export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user, isLoggedIn } = useAuth();
+  const clanId = useClanStore((s) => s.clanId);
   const [event, setEvent] = useState<Record<string, unknown> | null>(null);
   const [rsvps, setRsvps] = useState<Record<string, unknown>[]>([]);
   const [myRsvp, setMyRsvp] = useState<string | null>(null);
@@ -60,29 +62,22 @@ export default function EventDetailPage() {
     if (!params.id) return;
     setLoading(true);
     try {
-      const { data } = await supabase
-        .from("events")
-        .select("*, creator:profiles(display_name, email)")
-        .eq("id", params.id)
-        .single();
-      if (data) setEvent(data);
-
-      // Fetch RSVPs
-      const { data: rsvpData } = await supabase
-        .from("event_rsvps")
-        .select("*, user:profiles(display_name, email)")
-        .eq("event_id", params.id);
-      if (rsvpData) {
-        setRsvps(rsvpData);
-        if (user) {
-          const mine = rsvpData.find(
-            (r: Record<string, unknown>) => r.user_id === user.id,
-          );
-          if (mine) setMyRsvp(mine.status as string);
+      const { data } = await apiClient.get(`/events/${params.id}`);
+      if (data) {
+        setEvent(data);
+        const rsvpData = data.rsvps;
+        if (rsvpData) {
+          setRsvps(rsvpData);
+          if (user) {
+            const mine = rsvpData.find(
+              (r: Record<string, unknown>) => r.user_id === user.id,
+            );
+            if (mine) setMyRsvp(mine.status as string);
+          }
         }
       }
-    } catch {
-      /* ignore */
+    } catch (err: any) {
+      console.error("Failed to fetch event details:", err.message);
     } finally {
       setLoading(false);
     }
@@ -94,15 +89,15 @@ export default function EventDetailPage() {
 
   const handleRsvp = async (status: string) => {
     if (!user || !params.id) return;
-    const { error } = await supabase
-      .from("event_rsvps")
-      .upsert(
-        { event_id: params.id, user_id: user.id, status },
-        { onConflict: "event_id,user_id" },
-      );
-    if (!error) {
+    try {
+      await apiClient.post(`/events/${params.id}/rsvp`, {
+        status,
+        clanId
+      });
       setMyRsvp(status);
       fetchEvent();
+    } catch (err: any) {
+      console.error("Failed to RSVP:", err.message);
     }
   };
 

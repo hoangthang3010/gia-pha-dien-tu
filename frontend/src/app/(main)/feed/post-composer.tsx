@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/lib/supabase";
+import apiClient from "@/lib/api-client";
+import { useClanStore } from "@/stores/clan-store";
 import { PenSquare, User } from "lucide-react";
 import { useState } from "react";
 
@@ -12,6 +13,8 @@ export default function PostComposer({
 }: {
   onPostCreated: () => void;
 }) {
+  const clanId = useClanStore((s) => s.clanId);
+
   const { user, isLoggedIn } = useAuth();
   const [body, setBody] = useState("");
   const [title, setTitle] = useState("");
@@ -22,18 +25,18 @@ export default function PostComposer({
     if (!body.trim() || !user) return;
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("posts").insert({
-        author_id: user.id,
+      await apiClient.post("/posts", {
         title: title.trim() || null,
         body: body.trim(),
+        clan_id: clanId,
         type: "general",
       });
-      if (!error) {
-        setBody("");
-        setTitle("");
-        setExpanded(false);
-        onPostCreated();
-      }
+      setBody("");
+      setTitle("");
+      setExpanded(false);
+      onPostCreated();
+    } catch (err: any) {
+      console.error("Failed to create post:", err.message);
     } finally {
       setSubmitting(false);
     }

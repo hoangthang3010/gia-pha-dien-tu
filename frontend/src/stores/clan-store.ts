@@ -1,4 +1,4 @@
-// stores/useClanStore.ts
+// stores/clan-store.ts
 import { create } from "zustand";
 
 type ClanStore = {

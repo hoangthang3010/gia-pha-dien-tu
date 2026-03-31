@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { useClanStore } from "@/stores/useClanStore";
-import { useTreeStore } from "@/stores/useTreeStore";
+import { useClanStore } from "@/stores/clan-store";
+import { useTreeStore } from "@/stores/tree-store";
 import { fetchTreeData } from "@/lib/supabase-data";
 
 export function TreeLoader() {

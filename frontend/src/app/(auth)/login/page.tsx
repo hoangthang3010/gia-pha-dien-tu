@@ -47,10 +47,14 @@ export default function LoginPage() {
 
     try {
       if (mode === "register") {
+        const [lastName, ...firstNames] = data.displayName?.split(" ") || ["", ""];
+        const firstName = firstNames.join(" ") || "";
+
         const result = await signUp(
           data.email,
           data.password,
-          data.displayName,
+          firstName,
+          lastName,
         );
         if (result.error) {
           if (

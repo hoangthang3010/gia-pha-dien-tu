@@ -12,13 +12,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
-import { useClanStore } from "@/stores/useClanStore";
+import { fetchDashboardStats } from "@/lib/supabase-data";
+import { useClanStore } from "@/stores/clan-store";
 
 interface Stats {
   people: number;
   families: number;
-  profiles: number;
+  clan_members: number;
   posts: number;
   events: number;
   media: number;
@@ -28,7 +28,7 @@ export default function HomePage() {
   const [stats, setStats] = useState<Stats>({
     people: 0,
     families: 0,
-    profiles: 0,
+    clan_members: 0,
     posts: 0,
     events: 0,
     media: 0,
@@ -41,23 +41,8 @@ export default function HomePage() {
     async function fetchStats() {
       if (!clanId) return;
       try {
-        const tables = [
-          "people",
-          "families",
-          "profiles",
-          "posts",
-          "events",
-          "media",
-        ] as const;
-        const counts: Record<string, number> = {};
-        for (const t of tables) {
-          const { count } = await supabase
-            .from(t)
-            .select("*", { count: "exact", head: true })
-            .eq("clan_id", clanId);
-          counts[t] = count || 0;
-        }
-        setStats(counts as unknown as Stats);
+        const data = await fetchDashboardStats(clanId);
+        setStats(data as unknown as Stats);
       } catch {
         /* ignore */
       } finally {
@@ -65,7 +50,7 @@ export default function HomePage() {
       }
     }
     fetchStats();
-  }, []);
+  }, [clanId]);
 
   const cards = [
     {
@@ -85,7 +70,7 @@ export default function HomePage() {
     {
       title: "Tài khoản",
       icon: Users,
-      value: stats.profiles,
+      value: stats.clan_members,
       desc: "Người dùng đã đăng ký",
       href: "/directory",
     },

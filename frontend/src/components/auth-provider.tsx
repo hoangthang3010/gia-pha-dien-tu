@@ -8,8 +8,8 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { supabase } from "@/lib/supabase";
-import type { User, Session } from "@supabase/supabase-js";
+import apiClient from "@/lib/api-client";
+import { useAuthStore } from "@/stores/auth-store";
 
 export type UserRole = "admin" | "member" | null;
 
@@ -18,13 +18,11 @@ interface Profile {
   email: string;
   display_name: string | null;
   role: UserRole;
-  person_handle: string | null;
-  avatar_url: string | null;
+  avatar_url?: string | null;
 }
 
 interface AuthState {
-  user: User | null;
-  session: Session | null;
+  user: Profile | null;
   profile: Profile | null;
   role: UserRole;
   loading: boolean;
@@ -35,7 +33,8 @@ interface AuthState {
   signUp: (
     email: string,
     password: string,
-    displayName?: string,
+    firstName: string,
+    lastName: string
   ) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -44,19 +43,17 @@ interface AuthState {
 const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const { user, isAuthenticated, setAuth, logout } = useAuthStore();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .maybeSingle();
-      if (!error && data) {
+      // In the new backend, the profile data is usually returned directly in the JWT payload/user object
+      // But we can fetch it explicitly from a /profiles/:id endpoint if needed.
+      // For now, we sync it directly from the Zustand user state which comes from standard login/refresh
+      const { data } = await apiClient.get(`/profiles/${userId}`);
+      if (data) {
         setProfile(data as Profile);
       } else {
         setProfile(null);
@@ -66,94 +63,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const ensureProfile = useCallback(
-    async (u: User) => {
-      // Create profile if it doesn't exist (handles signup)
-      const { data: existing } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("id", u.id)
-        .maybeSingle();
-
-      if (!existing) {
-        await supabase.from("profiles").insert({
-          id: u.id,
-          email: u.email || "",
-          display_name:
-            u.user_metadata?.display_name || u.email?.split("@")[0] || "",
-          role: "member",
-        });
-      }
-      await fetchProfile(u.id);
-    },
-    [fetchProfile],
-  );
-
+  // Run once on mount to restore session via HTTP-Only cookie refresh token
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) ensureProfile(s.user);
-      setLoading(false);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user) {
-        ensureProfile(s.user);
-      } else {
-        setProfile(null);
+    const initAuth = async () => {
+      if (isAuthenticated) {
+        if (user) await fetchProfile(user.id);
+        setLoading(false);
+        return;
       }
-    });
 
-    return () => subscription.unsubscribe();
-  }, [ensureProfile]);
+      try {
+        const { data } = await apiClient.post("/auth/refresh");
+        setAuth(data.accessToken, data.user);
+        setProfile(data.user);
+      } catch (error) {
+        logout();
+        setProfile(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
+  }, [isAuthenticated, user, fetchProfile, setAuth, logout]);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) {
-      if (error.message.includes("Invalid login credentials")) {
+    try {
+      const { data } = await apiClient.post("/auth/sign-in", { email, password });
+      setAuth(data.accessToken, data.user);
+      setProfile(data.user);
+      return {};
+    } catch (error: any) {
+      if (error.response?.status === 401) {
         return { error: "Email hoặc mật khẩu không đúng" };
       }
-      return { error: error.message };
+      return { error: error.response?.data?.message || "Đã xảy ra lỗi đăng nhập" };
     }
-    return {};
-  }, []);
+  }, [setAuth]);
 
   const signUp = useCallback(
-    async (email: string, password: string, displayName?: string) => {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { display_name: displayName || email.split("@")[0] },
-        },
-      });
-      if (error) {
-        if (error.message.includes("already registered")) {
+    async (email: string, password: string, firstName: string, lastName: string) => {
+      try {
+        await apiClient.post("/auth/sign-up", {
+          email,
+          password,
+          firstName,
+          lastName,
+        });
+        return {};
+      } catch (error: any) {
+        if (error.response?.status === 409) {
           return { error: "Email đã được đăng ký. Hãy đăng nhập." };
         }
-        return { error: error.message };
+        return { error: error.response?.data?.message || "Lỗi đăng ký" };
       }
-      // If email confirmation is required
-      if (data.user && !data.session) {
-        return { error: "Đã đăng ký! Kiểm tra email để xác nhận tài khoản." };
-      }
-      return {};
     },
     [],
   );
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    setProfile(null);
-  }, []);
+    try {
+      await apiClient.post("/auth/sign-out");
+    } catch (error) {
+      console.error("Sign-out error", error);
+    } finally {
+      logout();
+      setProfile(null);
+    }
+  }, [logout]);
 
   const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id);
@@ -164,14 +141,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
-        user,
-        session,
+        user: user as Profile | null,
         profile,
         role,
         loading,
         isAdmin: role === "admin",
         isMember: role === "member" || role === "admin",
-        isLoggedIn: !!user,
+        isLoggedIn: isAuthenticated,
         signIn,
         signUp,
         signOut,

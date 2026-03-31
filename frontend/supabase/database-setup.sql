@@ -337,7 +337,14 @@ CREATE POLICY "anyone can read comments" ON comments FOR SELECT USING (clan_id I
         SELECT clan_id
         FROM clan_members
         WHERE user_id = auth.uid()
-    ));
+    )
+  OR
+  EXISTS (
+    SELECT 1
+    FROM profiles
+    WHERE id = auth.uid()
+    AND role = 'admin'
+  ));
 DROP POLICY IF EXISTS "users can insert comments" ON comments;
 CREATE POLICY "users can insert comments" ON comments FOR INSERT WITH CHECK (auth.uid() = author_id);
 DROP POLICY IF EXISTS "owner or admin can delete comments" ON comments;
@@ -358,7 +365,14 @@ USING (clan_id IN (
         SELECT clan_id
         FROM clan_members
         WHERE user_id = auth.uid()
-    ));
+    )
+  OR
+  EXISTS (
+    SELECT 1
+    FROM profiles
+    WHERE id = auth.uid()
+    AND role = 'admin'
+  ));
 
 DROP POLICY IF EXISTS "authenticated can insert events" ON events;
 CREATE POLICY "authenticated can insert events"
@@ -397,7 +411,14 @@ USING (
         SELECT clan_id
         FROM clan_members
         WHERE user_id = auth.uid()
-    ));
+    )
+  OR
+  EXISTS (
+    SELECT 1
+    FROM profiles
+    WHERE id = auth.uid()
+    AND role = 'admin'
+  ));
 
 DROP POLICY IF EXISTS "insert posts" ON posts;
 CREATE POLICY "insert posts"
@@ -445,7 +466,8 @@ CREATE INDEX IF NOT EXISTS idx_posts_clan ON posts(clan_id);
 CREATE INDEX IF NOT EXISTS idx_events_clan ON events(clan_id);
 CREATE INDEX IF NOT EXISTS idx_comments_clan ON comments(clan_id);
 CREATE INDEX IF NOT EXISTS idx_people_clan_generation ON people(clan_id, generation);
-CREATE INDEX IF NOT EXISTS idx_families_clan ON families(clan_id);
+CREATE INDEX IF NOT EXISTS idx_clan_members_user ON clan_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_clan_members_clan ON clan_members(clan_id);
 
 -- Updated_at trigger
 CREATE OR REPLACE FUNCTION update_updated_at()

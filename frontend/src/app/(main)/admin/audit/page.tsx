@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
+import { fetchAuditLogs } from "@/lib/supabase-data";
 
 const ACTION_COLORS: Record<string, string> = {
   CREATE: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
@@ -29,11 +29,7 @@ export default function AuditLogPage() {
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("audit_logs")
-      .select("*, actor:profiles(email, display_name)")
-      .order("created_at", { ascending: false })
-      .limit(100);
+    const data = await fetchAuditLogs();
     if (data) setLogs(data);
     setLoading(false);
   }, []);
