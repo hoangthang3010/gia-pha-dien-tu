@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { FamiliesService } from './families.service';
 import { CreateFamilyDto } from './dto/create-family.dto';
 import { UpdateFamilyDto } from './dto/update-family.dto';
+import { ClanId } from '../common/decorators/clan-id.decorator';
 
 
 @Controller('families')
@@ -15,7 +16,7 @@ export class FamiliesController {
   }
 
   @Get()
-  findAll(@Query('clanId') clanId?: string) {
+  findAll(@ClanId() clanId: string) {
     return this.familiesService.findAll(clanId);
   }
 

@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
 import { PeopleService } from './people.service';
 import { CreatePersonDto } from './dto/create-person.dto';
 import { UpdatePersonDto } from './dto/update-person.dto';
+import { ClanId } from '../common/decorators/clan-id.decorator';
 
 
 @Controller('people')
@@ -15,7 +16,7 @@ export class PeopleController {
   }
 
   @Get()
-  findAll(@Query('clanId') clanId?: string) {
+  findAll(@ClanId() clanId: string) {
     return this.peopleService.findAll(clanId);
   }
 

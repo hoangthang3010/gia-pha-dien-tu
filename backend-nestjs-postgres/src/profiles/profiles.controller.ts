@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Req, ForbiddenException } from '@nestjs/common';
 import { ProfilesService } from './profiles.service';
+import { ClanId } from '../common/decorators/clan-id.decorator';
 
 @Controller('profiles')
 export class ProfilesController {
@@ -11,8 +12,7 @@ export class ProfilesController {
   }
 
   @Get()
-  findAll(@Req() req, @Query('status') status?: string,
-    @Query('clanId') clanId?: string,) {
+  findAll(@Req() req, @Query('status') status?: string, @ClanId() clanId?: string) {
     const { role, clanIds, id } = req.user;
 
     if (role !== 'admin') {

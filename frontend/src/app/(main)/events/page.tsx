@@ -218,7 +218,7 @@ export default function EventsPage() {
     if (!clanId) return;
     setLoading(true);
     try {
-      const { data } = await apiClient.get(`/events?clanId=${clanId}`);
+      const { data } = await apiClient.get('/events');
       if (data) setEvents(data);
     } catch (err: any) {
       console.error("Failed to load events:", err.message);

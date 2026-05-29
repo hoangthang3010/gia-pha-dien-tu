@@ -79,10 +79,10 @@ export async function fetchTreeData(clanId?: string): Promise<{
   console.log(clanId);
 
   try {
-    // If we have a specific endpoint or use Promise.all
+    // clanId is now fetched from the cookie by the backend
     const [pRes, fRes] = await Promise.all([
-      apiClient.get(clanId ? `/people?clanId=${clanId}` : '/people'),
-      apiClient.get(clanId ? `/families?clanId=${clanId}` : '/families')
+      apiClient.get('/people'),
+      apiClient.get('/families')
     ]);
 
     return {
@@ -319,7 +319,7 @@ export async function markAllNotificationsAsRead(): Promise<void> {
 
 export async function fetchDirectoryMembers(clan_id: string): Promise<any[]> {
   try {
-    const { data } = await apiClient.get('/profiles?status=active&clanId=' + clan_id);
+    const { data } = await apiClient.get('/profiles?status=active');
     return data || [];
   } catch (error) {
     console.error("Failed to fetch directory members", error);

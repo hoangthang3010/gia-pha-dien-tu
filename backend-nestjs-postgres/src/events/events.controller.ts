@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { ClanId } from '../common/decorators/clan-id.decorator';
 
 
 @Controller('events')
@@ -15,7 +16,7 @@ export class EventsController {
   }
 
   @Get()
-  findAll(@Query('clanId') clanId?: string) {
+  findAll(@ClanId() clanId: string) {
     return this.eventsService.findAll(clanId);
   }
 

@@ -18,6 +18,7 @@ import { useAuth } from "@/components/auth-provider";
 import { AutoComplete, IOption } from "@/components/ui/autocomplete";
 import { useClanStore } from "@/stores/clan-store";
 import { useEffect, useMemo, useState } from "react";
+import apiClient from "@/lib/api-client";
 import {
   Combobox,
   ComboboxContent,
@@ -52,6 +53,18 @@ export function Header() {
     await signOut();
     router.push("/login");
   };
+
+  const handleSelectClan = async (clanIdValue: string) => {
+    try {
+      // Call backend to set the clanId cookie
+      await apiClient.post(`/clans/${clanIdValue}/select`);
+      // Update local store
+      setClanId(clanIdValue);
+    } catch (error) {
+      console.error("Failed to select clan:", error);
+    }
+  };
+
   const clanMemberOpt = useMemo(() => {
     return clanMembers.map((item) => ({
       label: item.label,
@@ -70,8 +83,8 @@ export function Header() {
 
   useEffect(() => {
     if (!clanValue) return;
-    setClanId(clanValue.value);
-  }, [clanValue, setClanId]);
+    handleSelectClan(clanValue.value);
+  }, [clanValue]);
   console.log(clanValue);
 
   const selectedLabel = useMemo(() => {

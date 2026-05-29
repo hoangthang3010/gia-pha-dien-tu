@@ -20,7 +20,7 @@ export default function FeedPage() {
     if (!clanId) return;
     setLoading(true);
     try {
-      const { data } = await apiClient.get(`/posts?clanId=${clanId}`);
+      const { data } = await apiClient.get('/posts');
       if (data) setPosts(data);
     } catch (error: any) {
       console.error("Failed to load posts:", error.message);

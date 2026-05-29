@@ -1,13 +1,18 @@
 -- Dữ liệu mẫu demo
 -- Using existing admin profile id from the database: 1058c27a-32ae-4ea8-9638-a9672a74a18d
 
-INSERT INTO profiles (id, email, display_name, role, status) VALUES
-('1058c27a-32ae-4ea8-9638-a9672a74a18d', 'thangminhhoang98@gmail.com', 'Nguyễn Văn B', 'admin', 'active'),
-(gen_random_uuid(), 'tran.a@gmail.com', 'Trần Văn A', 'user', 'active'),
-(gen_random_uuid(), 'le.b@gmail.com', 'Lê Văn B', 'user', 'active'),
-(gen_random_uuid(), 'pham.c@gmail.com', 'Phạm Văn C', 'user', 'active'),
-(gen_random_uuid(), 'hoang.d@gmail.com', 'Hoàng Văn D', 'user', 'active')
-ON CONFLICT (email) DO NOTHING;
+INSERT INTO profiles AS p (id, email, hashed_password, display_name, role, status) VALUES
+('1058c27a-32ae-4ea8-9638-a9672a74a18d', 'thangminhhoang98@gmail.com', '$2b$10$3HLlRbvKuVPQLTzPiKJiGORfq8EdisD8kj8GjTfrmhy9t.2Jb7gB2', 'Nguyễn Văn B', 'admin', 'active'),
+(gen_random_uuid(), 'tran.a@gmail.com', '$2b$10$3HLlRbvKuVPQLTzPiKJiGORfq8EdisD8kj8GjTfrmhy9t.2Jb7gB2', 'Trần Văn A', 'user', 'active'),
+(gen_random_uuid(), 'le.b@gmail.com', '$2b$10$3HLlRbvKuVPQLTzPiKJiGORfq8EdisD8kj8GjTfrmhy9t.2Jb7gB2', 'Lê Văn B', 'user', 'active'),
+(gen_random_uuid(), 'pham.c@gmail.com', '$2b$10$3HLlRbvKuVPQLTzPiKJiGORfq8EdisD8kj8GjTfrmhy9t.2Jb7gB2', 'Phạm Văn C', 'user', 'active'),
+(gen_random_uuid(), 'hoang.d@gmail.com', '$2b$10$3HLlRbvKuVPQLTzPiKJiGORfq8EdisD8kj8GjTfrmhy9t.2Jb7gB2', 'Hoàng Văn D', 'user', 'active')
+ON CONFLICT (email) DO UPDATE SET
+  hashed_password = COALESCE(p.hashed_password, EXCLUDED.hashed_password),
+  display_name = EXCLUDED.display_name,
+  role = EXCLUDED.role,
+  status = EXCLUDED.status;
+-- Default password for seeded users: Admin@123
 
 INSERT INTO clans (id,name,slug,is_public)
 VALUES 
