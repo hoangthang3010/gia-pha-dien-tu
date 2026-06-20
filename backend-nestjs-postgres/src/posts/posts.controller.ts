@@ -3,6 +3,7 @@ import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { ClanId } from '../common/decorators/clan-id.decorator';
+import { LoadClanIdsGuard } from '../common/guards/load-clan-ids.guard';
 
 
 @Controller('posts')
@@ -16,6 +17,7 @@ export class PostsController {
   }
 
   @Get()
+  @UseGuards(LoadClanIdsGuard)
   findAll(@ClanId() clanId: string) {
     return this.postsService.findAll(clanId);
   }

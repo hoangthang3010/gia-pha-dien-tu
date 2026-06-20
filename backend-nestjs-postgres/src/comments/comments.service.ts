@@ -4,21 +4,52 @@ import { Repository } from 'typeorm';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { Comment } from './entities/comment.entity';
+import { Post } from '../posts/entities/post.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class CommentsService {
   constructor(
     @InjectRepository(Comment)
     private readonly commentsRepository: Repository<Comment>,
+    @InjectRepository(Post)
+    private readonly postsRepository: Repository<Post>,
+    private readonly notificationsService: NotificationsService,
   ) { }
 
-  async create(createCommentDto: CreateCommentDto, authorId: string): Promise<Comment> {
+  async create(
+    createCommentDto: CreateCommentDto,
+    authorId: string,
+    authorName: string | null,
+  ): Promise<Comment> {
+    const post = await this.postsRepository.findOne({
+      where: { id: createCommentDto.post_id },
+      relations: ['author'],
+    });
+
+    if (!post) {
+      throw new NotFoundException(`Post with ID ${createCommentDto.post_id} not found`);
+    }
+
     const newComment = this.commentsRepository.create({
       ...createCommentDto,
       author_id: authorId,
     });
 
-    return this.commentsRepository.save(newComment);
+    const savedComment = await this.commentsRepository.save(newComment);
+
+    if (post.author_id && post.author_id !== authorId) {
+      const displayName = authorName || 'Người dùng';
+      await this.notificationsService.createNotification(
+        post.author_id,
+        'NEW_COMMENT',
+        'Bình luận mới',
+        `${displayName} đã bình luận trên bài viết của bạn.`,
+        `/posts/${post.id}`,
+      );
+    }
+
+    return savedComment;
   }
 
   async findAll(postId?: string, personHandle?: string): Promise<Comment[]> {

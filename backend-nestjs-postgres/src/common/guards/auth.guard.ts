@@ -12,6 +12,7 @@ import { DataSource, Repository } from 'typeorm';
 import * as jwt from 'jsonwebtoken';
 import { Profile } from '../../profiles/entities/profile.entity';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { ROLES_KEY } from '../decorators/roles.decorator';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -33,7 +34,16 @@ export class AuthGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers.authorization;
-    const token = authHeader?.split(' ')[1]; // Bearer <token>
+    let token = authHeader?.split(' ')[1]; // Bearer <token>
+
+    if (!token) {
+      const queryToken = request.query?.token;
+      if (Array.isArray(queryToken)) {
+        token = queryToken[0];
+      } else if (typeof queryToken === 'string') {
+        token = queryToken;
+      }
+    }
 
     if (!token) {
       throw new UnauthorizedException('Access token missing');
@@ -51,17 +61,20 @@ export class AuthGuard implements CanActivate {
       if (!profile) {
         throw new NotFoundException('User does not exist');
       }
-      const clans = await this.dataSource.query(
-        `SELECT clan_id FROM clan_members WHERE user_id = $1`,
-        [decoded.userId],
-      );
-      const clanIds = clans.map((c) => c.clan_id);
 
       const { hashed_password: _hidden, ...safeProfile } = profile;
       request.user = {
         ...safeProfile,
-        clanIds,
-      };;
+      };
+
+      const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]);
+      if (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(request.user.role)) {
+        throw new ForbiddenException('Insufficient permissions');
+      }
+
       return true;
     } catch (err) {
       if (

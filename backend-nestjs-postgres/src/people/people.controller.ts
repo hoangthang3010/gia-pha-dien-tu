@@ -3,6 +3,7 @@ import { PeopleService } from './people.service';
 import { CreatePersonDto } from './dto/create-person.dto';
 import { UpdatePersonDto } from './dto/update-person.dto';
 import { ClanId } from '../common/decorators/clan-id.decorator';
+import { LoadClanIdsGuard } from '../common/guards/load-clan-ids.guard';
 
 
 @Controller('people')
@@ -16,6 +17,7 @@ export class PeopleController {
   }
 
   @Get()
+  @UseGuards(LoadClanIdsGuard)
   findAll(@ClanId() clanId: string) {
     return this.peopleService.findAll(clanId);
   }

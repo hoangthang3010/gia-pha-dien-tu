@@ -3,6 +3,7 @@ import { FamiliesService } from './families.service';
 import { CreateFamilyDto } from './dto/create-family.dto';
 import { UpdateFamilyDto } from './dto/update-family.dto';
 import { ClanId } from '../common/decorators/clan-id.decorator';
+import { LoadClanIdsGuard } from '../common/guards/load-clan-ids.guard';
 
 
 @Controller('families')
@@ -16,6 +17,7 @@ export class FamiliesController {
   }
 
   @Get()
+  @UseGuards(LoadClanIdsGuard)
   findAll(@ClanId() clanId: string) {
     return this.familiesService.findAll(clanId);
   }

@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { ClanMembersService } from './clan-members.service';
 import { CreateClanMemberDto } from './dto/create-clan-member.dto';
 import { UpdateClanMemberDto } from './dto/update-clan-member.dto';
+import { isAdmin } from '../common/utils/authorization.util';
+import { User } from '../common/decorators/user.decorator';
 
 @Controller('clan-members')
 export class ClanMembersController {
@@ -13,10 +15,9 @@ export class ClanMembersController {
   }
 
   @Get()
-  findAll(@Req() req) {
-    const isAdmin = req.user.role === 'admin';
-    if (!isAdmin) {
-      return this.clanMembersService.findAllByUserId(req.user.id);
+  findAll(@User() user: any) {
+    if (!isAdmin(user)) {
+      return this.clanMembersService.findAllByUserId(user.id);
     }
     return this.clanMembersService.findAll();
   }

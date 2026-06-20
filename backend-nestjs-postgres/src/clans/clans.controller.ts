@@ -1,8 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Req, ForbiddenException, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ForbiddenException, Res, UseGuards } from '@nestjs/common';
 import { ClansService } from './clans.service';
 import { CreateClanDto } from './dto/create-clan.dto';
 import { UpdateClanDto } from './dto/update-clan.dto';
-import { Response } from 'express';
+import type { Response } from 'express';
+import { hasClanAccess } from '../common/utils/authorization.util';
+import { User } from '../common/decorators/user.decorator';
+import { LoadClanIdsGuard } from '../common/guards/load-clan-ids.guard';
 
 @Controller('clans')
 export class ClansController {
@@ -19,9 +22,9 @@ export class ClansController {
   }
 
   @Post(':id/select')
-  selectClan(@Param('id') id: string, @Req() req, @Res() res: Response) {
-    const isAdmin = req.user.role === 'admin';
-    if (!isAdmin && !req.user.clanIds.includes(id)) {
+  @UseGuards(LoadClanIdsGuard)
+  selectClan(@Param('id') id: string, @User() user: any, @Res() res: Response) {
+    if (!hasClanAccess(user, id)) {
       throw new ForbiddenException('You do not have access to this clan');
     }
     
@@ -36,9 +39,9 @@ export class ClansController {
   }
 
   @Get(':id/stats')
-  getStats(@Param('id') id: string, @Req() req) {
-    const isAdmin = req.user.role === 'admin';
-    if (!isAdmin && !req.user.clanIds.includes(id)) {
+  @UseGuards(LoadClanIdsGuard)
+  getStats(@Param('id') id: string, @User() user: any) {
+    if (!hasClanAccess(user, id)) {
       throw new ForbiddenException();
     }
     return this.clansService.getStats(id);

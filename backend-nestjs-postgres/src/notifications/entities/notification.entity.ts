@@ -18,7 +18,7 @@ export class Notification {
   message: string;
 
   @Column({ type: 'text', nullable: true })
-  link_url: string;
+  link_url: string | null;
 
   @Column({ type: 'boolean', default: false })
   is_read: boolean;

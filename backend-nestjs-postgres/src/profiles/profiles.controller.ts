@@ -1,6 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Req, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ForbiddenException, UseGuards } from '@nestjs/common';
 import { ProfilesService } from './profiles.service';
 import { ClanId } from '../common/decorators/clan-id.decorator';
+import { User } from '../common/decorators/user.decorator';
+import { LoadClanIdsGuard } from '../common/guards/load-clan-ids.guard';
+import { isAdmin } from '../common/utils/authorization.util';
 
 @Controller('profiles')
 export class ProfilesController {
@@ -12,11 +15,11 @@ export class ProfilesController {
   }
 
   @Get()
-  findAll(@Req() req, @Query('status') status?: string, @ClanId() clanId?: string) {
-    const { role, clanIds, id } = req.user;
+  @UseGuards(LoadClanIdsGuard)
+  findAll(@User() user: any, @Query('status') status?: string, @ClanId() clanId?: string) {
+    const { clanIds } = user;
 
-    if (role !== 'admin') {
-      // user chỉ được xem clan của mình
+    if (!isAdmin(user)) {
       if (clanId && !clanIds.includes(clanId)) {
         throw new ForbiddenException('Not allowed to access this clan');
       }
@@ -27,7 +30,6 @@ export class ProfilesController {
       );
     }
 
-    // admin
     return this.profilesService.findAll(status, clanId);
   }
 
