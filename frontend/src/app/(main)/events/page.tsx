@@ -15,6 +15,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { createPaginationParams } from "@/lib/supabase-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -218,8 +219,12 @@ export default function EventsPage() {
     if (!clanId) return;
     setLoading(true);
     try {
-      const { data } = await apiClient.get('/events');
-      if (data) setEvents(data);
+      const { data } = await apiClient.get('/events', {
+        params: createPaginationParams(),
+      });
+      if (data) {
+        setEvents(Array.isArray(data) ? data : data.items ?? []);
+      }
     } catch (err: any) {
       console.error("Failed to load events:", err.message);
     } finally {

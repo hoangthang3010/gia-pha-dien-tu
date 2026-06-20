@@ -6,7 +6,7 @@ import type { Response } from 'express';
 import { hasClanAccess } from '../common/utils/authorization.util';
 import { User } from '../common/decorators/user.decorator';
 import { LoadClanIdsGuard } from '../common/guards/load-clan-ids.guard';
-import { normalizeOffsetPagination } from '../common/utils/pagination.util';
+import { normalizePagePagination, buildPagedResponse } from '../common/utils/pagination.util';
 
 @Controller('clans')
 export class ClansController {
@@ -18,9 +18,10 @@ export class ClansController {
   }
 
   @Get()
-  findAll(@Query('limit') limit?: string, @Query('offset') offset?: string) {
-    const pagination = normalizeOffsetPagination(limit, offset);
-    return this.clansService.findAll(pagination.limit, pagination.offset);
+  async findAll(@Query('limit') limit?: string, @Query('page') page?: string) {
+    const pagination = normalizePagePagination(page, limit);
+    const items = await this.clansService.findAll(pagination.limit, pagination.offset);
+    return buildPagedResponse(items, pagination.page, pagination.limit);
   }
 
   @Post(':id/select')

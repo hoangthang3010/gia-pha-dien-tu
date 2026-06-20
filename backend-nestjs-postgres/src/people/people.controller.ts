@@ -4,7 +4,7 @@ import { CreatePersonDto } from './dto/create-person.dto';
 import { UpdatePersonDto } from './dto/update-person.dto';
 import { ClanId } from '../common/decorators/clan-id.decorator';
 import { LoadClanIdsGuard } from '../common/guards/load-clan-ids.guard';
-import { normalizeOffsetPagination } from '../common/utils/pagination.util';
+import { normalizePagePagination, buildPagedResponse } from '../common/utils/pagination.util';
 
 
 @Controller('people')
@@ -19,13 +19,14 @@ export class PeopleController {
 
   @Get()
   @UseGuards(LoadClanIdsGuard)
-  findAll(
+  async findAll(
     @ClanId() clanId: string,
     @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
+    @Query('page') page?: string,
   ) {
-    const pagination = normalizeOffsetPagination(limit, offset);
-    return this.peopleService.findAll(clanId, pagination.limit, pagination.offset);
+    const pagination = normalizePagePagination(page, limit);
+    const items = await this.peopleService.findAll(clanId, pagination.limit, pagination.offset);
+    return buildPagedResponse(items, pagination.page, pagination.limit);
   }
 
   @Get(':handle')

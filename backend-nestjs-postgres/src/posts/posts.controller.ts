@@ -4,7 +4,7 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { ClanId } from '../common/decorators/clan-id.decorator';
 import { LoadClanIdsGuard } from '../common/guards/load-clan-ids.guard';
-import { normalizeOffsetPagination } from '../common/utils/pagination.util';
+import { normalizePagePagination, buildPagedResponse } from '../common/utils/pagination.util';
 
 
 @Controller('posts')
@@ -19,13 +19,14 @@ export class PostsController {
 
   @Get()
   @UseGuards(LoadClanIdsGuard)
-  findAll(
+  async findAll(
     @ClanId() clanId: string,
+    @Query('page') page?: string,
     @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
   ) {
-    const pagination = normalizeOffsetPagination(limit, offset);
-    return this.postsService.findAll(clanId, pagination.limit, pagination.offset);
+    const pagination = normalizePagePagination(page, limit);
+    const items = await this.postsService.findAll(clanId, pagination.limit, pagination.offset);
+    return buildPagedResponse(items, pagination.page, pagination.limit);
   }
 
   @Get(':id')

@@ -4,7 +4,8 @@ import { CreateFamilyDto } from './dto/create-family.dto';
 import { UpdateFamilyDto } from './dto/update-family.dto';
 import { ClanId } from '../common/decorators/clan-id.decorator';
 import { LoadClanIdsGuard } from '../common/guards/load-clan-ids.guard';
-import { normalizeOffsetPagination } from '../common/utils/pagination.util';
+import { normalizePagePagination, buildPagedResponse } from '../common/utils/pagination.util';
+
 
 
 @Controller('families')
@@ -19,13 +20,14 @@ export class FamiliesController {
 
   @Get()
   @UseGuards(LoadClanIdsGuard)
-  findAll(
+  async findAll(
     @ClanId() clanId: string,
+    @Query('page') page?: string,
     @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
   ) {
-    const pagination = normalizeOffsetPagination(limit, offset);
-    return this.familiesService.findAll(clanId, pagination.limit, pagination.offset);
+    const pagination = normalizePagePagination(page, limit);
+    const items = await this.familiesService.findAll(clanId, pagination.limit, pagination.offset);
+    return buildPagedResponse(items, pagination.page, pagination.limit);
   }
 
   @Post('move-child')

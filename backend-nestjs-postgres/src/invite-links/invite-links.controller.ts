@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { InviteLinksService } from './invite-links.service';
-import { normalizeOffsetPagination } from '../common/utils/pagination.util';
+import { normalizePagePagination, buildPagedResponse } from '../common/utils/pagination.util';
 
 @Controller('invite-links')
 export class InviteLinksController {
@@ -12,9 +12,10 @@ export class InviteLinksController {
   }
 
   @Get()
-  findAll(@Query('limit') limit?: string, @Query('offset') offset?: string) {
-    const pagination = normalizeOffsetPagination(limit, offset);
-    return this.inviteLinksService.findAll(pagination.limit, pagination.offset);
+  async findAll(@Query('limit') limit?: string, @Query('page') page?: string) {
+    const pagination = normalizePagePagination(page, limit);
+    const items = await this.inviteLinksService.findAll(pagination.limit, pagination.offset);
+    return buildPagedResponse(items, pagination.page, pagination.limit);
   }
 
   @Delete(':id')

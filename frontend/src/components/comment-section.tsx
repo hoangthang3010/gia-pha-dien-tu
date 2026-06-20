@@ -28,7 +28,12 @@ export function CommentSection({ personHandle }: CommentSectionProps) {
 
   const fetchComments = useCallback(async () => {
     try {
-      const { data } = await apiClient.get(`/comments?personHandle=${personHandle}`);
+      const { data } = await apiClient.get(`/comments`, {
+        params: {
+          personHandle,
+          limit: 200,
+        },
+      });
       setComments((data as Comment[]) || []);
     } catch (err) {
       console.error("Failed to fetch comments", err);

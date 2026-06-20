@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, 
 import { MediaService } from './media.service';
 import { CreateMediaDto } from './dto/create-media.dto';
 import { UpdateMediaDto } from './dto/update-media.dto';
-import { normalizeOffsetPagination } from '../common/utils/pagination.util';
+import { normalizePagePagination, buildPagedResponse } from '../common/utils/pagination.util';
 
 
 @Controller('media')
@@ -16,13 +16,14 @@ export class MediaController {
   }
 
   @Get()
-  findAll(
+  async findAll(
     @Query('state') state?: string,
     @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
+    @Query('page') page?: string,
   ) {
-    const pagination = normalizeOffsetPagination(limit, offset);
-    return this.mediaService.findAll(state, pagination.limit, pagination.offset);
+    const pagination = normalizePagePagination(page, limit);
+    const items = await this.mediaService.findAll(state, pagination.limit, pagination.offset);
+    return buildPagedResponse(items, pagination.page, pagination.limit);
   }
 
   @Get(':id')

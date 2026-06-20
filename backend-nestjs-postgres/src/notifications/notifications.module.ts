@@ -9,5 +9,6 @@ import { NotificationsStreamService } from './notifications-stream.service';
   imports: [TypeOrmModule.forFeature([Notification])],
   controllers: [NotificationsController],
   providers: [NotificationsService, NotificationsStreamService],
+  exports: [NotificationsService],
 })
 export class NotificationsModule {}

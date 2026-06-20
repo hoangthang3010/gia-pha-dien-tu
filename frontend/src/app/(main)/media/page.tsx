@@ -23,6 +23,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/components/auth-provider";
 import apiClient from "@/lib/api-client";
+import { createPaginationParams } from "@/lib/supabase-data";
 
 interface MediaItem {
   id: string;
@@ -57,9 +58,12 @@ export default function MediaLibraryPage() {
   const fetchMedia = useCallback(async (state?: string) => {
     setLoading(true);
     try {
-      const url = state && state !== "all" ? `/media?state=${state}` : "/media";
-      const { data } = await apiClient.get(url);
-      if (data) setItems(data);
+      const params: any = createPaginationParams();
+      if (state && state !== "all") {
+        params.state = state;
+      }
+      const { data } = await apiClient.get('/media', { params });
+      if (data) setItems(Array.isArray(data) ? data : data.items ?? []);
     } catch (err: any) {
       console.error("Failed to load media:", err.message);
     } finally {

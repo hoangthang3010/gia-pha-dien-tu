@@ -117,7 +117,7 @@ export default function PostCard({
       </CardHeader>
       <CardContent className="space-y-3">
         {post.title && <h3 className="font-semibold">{post.title}</h3>}
-        <p className="text-sm whitespace-pre-wrap">{post.body}</p>
+        <p className="text-sm whitespace-pre-wrap">{post.content}</p>
         <Button
           variant="ghost"
           size="sm"

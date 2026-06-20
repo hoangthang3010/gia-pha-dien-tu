@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Newspaper } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import apiClient from "@/lib/api-client";
+import { createPaginationParams } from "@/lib/supabase-data";
 import PostComposer from "@/app/(main)/feed/post-composer";
 import PostCard from "@/app/(main)/feed/post-card";
 import { IPost } from "@/app/(main)/feed/type";
@@ -20,8 +21,12 @@ export default function FeedPage() {
     if (!clanId) return;
     setLoading(true);
     try {
-      const { data } = await apiClient.get('/posts');
-      if (data) setPosts(data);
+      const { data } = await apiClient.get('/posts', {
+        params: createPaginationParams(),
+      });
+      if (data) {
+        setPosts(Array.isArray(data) ? data : data.items ?? []);
+      }
     } catch (error: any) {
       console.error("Failed to load posts:", error.message);
     } finally {

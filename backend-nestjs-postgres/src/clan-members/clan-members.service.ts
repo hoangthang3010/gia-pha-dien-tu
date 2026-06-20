@@ -19,7 +19,7 @@ export class ClanMembersService {
   async findAll(limit = 50, offset = 0) {
     return await this.clanMemberRepository.find({
       relations: ['clan'],
-      order: { id: 'DESC' },
+      order: { clan_id: 'DESC' },
       skip: offset,
       take: limit,
     });
@@ -29,7 +29,7 @@ export class ClanMembersService {
     return await this.clanMemberRepository.find({
       where: { user_id: userId },
       relations: ['clan'],
-      order: { id: 'DESC' },
+      order: { clan_id: 'DESC' },
       skip: offset,
       take: limit,
     });

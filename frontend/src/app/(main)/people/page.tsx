@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Users, Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { fetchPeople } from "@/lib/supabase-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,29 +37,26 @@ export default function PeopleListPage() {
   const [livingFilter, setLivingFilter] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const fetchPeople = async () => {
+    const loadPeople = async () => {
       try {
-        const { default: apiClient } = await import("@/lib/api-client");
-        const { data } = await apiClient.get("/people");
-        if (data) {
-          setPeople(
-            data.map((row: any) => ({
-              handle: row.handle,
-              displayName: row.display_name,
-              gender: row.gender,
-              birthYear: row.birth_year,
-              deathYear: row.death_year,
-              isLiving: row.is_living,
-              isPrivacyFiltered: row.is_privacy_filtered,
-            })),
-          );
-        }
-      } catch {
+        const data = await fetchPeople();
+        setPeople(
+          data.map((row: any) => ({
+            handle: row.handle,
+            displayName: row.display_name,
+            gender: row.gender,
+            birthYear: row.birth_year,
+            deathYear: row.death_year,
+            isLiving: row.is_living,
+            isPrivacyFiltered: row.is_privacy_filtered,
+          })),
+        );
+      } catch (error) {
         /* ignore */
       }
       setLoading(false);
     };
-    fetchPeople();
+    loadPeople();
   }, []);
 
   const filtered = people.filter((p) => {

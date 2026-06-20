@@ -7,13 +7,28 @@ import type { TreeNode, TreeFamily } from "./tree-layout";
 
 export type { TreeNode, TreeFamily };
 
+const DEFAULT_PAGE_LIMIT = 200;
+
+export function createPaginationParams(limit = DEFAULT_PAGE_LIMIT, page = 1) {
+  return {
+    limit,
+    page,
+  };
+}
+
+function normalizePagedData<T>(data: any): T[] {
+  const payload = data?.items ?? data ?? [];
+  return Array.isArray(payload) ? payload : [];
+}
+
 // ── Read operations ──
 
-/** Fetch all people from NestJS */
-export async function fetchPeople(): Promise<TreeNode[]> {
+/** Fetch people from NestJS with optional page pagination */
+export async function fetchPeople(limit = DEFAULT_PAGE_LIMIT, page = 1): Promise<TreeNode[]> {
   try {
-    const { data } = await apiClient.get('/people');
-    return (data || []).map((row: any) => ({
+    const { data } = await apiClient.get('/people', { params: createPaginationParams(limit, page) });
+    const rows = normalizePagedData<any>(data);
+    return rows.map((row) => ({
       ...row,
       displayName: row.display_name,
       birthYear: row.birth_year,
@@ -31,10 +46,11 @@ export async function fetchPeople(): Promise<TreeNode[]> {
 }
 
 /** Fetch all families from NestJS */
-export async function fetchFamilies(): Promise<TreeFamily[]> {
+export async function fetchFamilies(limit = DEFAULT_PAGE_LIMIT, page = 1): Promise<TreeFamily[]> {
   try {
-    const { data } = await apiClient.get('/families');
-    return (data || []).map((row: any) => ({
+    const { data } = await apiClient.get('/families', { params: createPaginationParams(limit, page) });
+    const rows = normalizePagedData<any>(data);
+    return rows.map((row) => ({
       ...row,
       fatherHandle: row.father_handle,
       motherHandle: row.mother_handle,
@@ -46,26 +62,25 @@ export async function fetchFamilies(): Promise<TreeFamily[]> {
   }
 }
 
-export async function fetchClans() {
+export async function fetchClans(limit = DEFAULT_PAGE_LIMIT, page = 1) {
   try {
-    const { data } = await apiClient.get('/clans');
-    return data;
+    const { data } = await apiClient.get('/clans', { params: createPaginationParams(limit, page) });
+    return normalizePagedData<any>(data);
   } catch (error) {
     throw error;
   }
 }
 
-export async function fetchClanMembers() {
+export async function fetchClanMembers(limit = DEFAULT_PAGE_LIMIT, page = 1) {
   try {
-    const { data } = await apiClient.get('/clan-members');
-    return (
-      data?.map((item: any) => ({
-        label: item.clan?.name,
-        value: item.clan?.id,
-        role: item.role,
-        description: item.clan?.description,
-      })) || []
-    );
+    const { data } = await apiClient.get('/clan-members', { params: createPaginationParams(limit, page) });
+    const rows = normalizePagedData<any>(data);
+    return rows.map((item) => ({
+      label: item.clan?.name,
+      value: item.clan?.id,
+      role: item.role,
+      description: item.clan?.description,
+    }));
   } catch (error) {
     throw error;
   }
@@ -81,12 +96,15 @@ export async function fetchTreeData(clanId?: string): Promise<{
   try {
     // clanId is now fetched from the cookie by the backend
     const [pRes, fRes] = await Promise.all([
-      apiClient.get('/people'),
-      apiClient.get('/families')
+      apiClient.get('/people', { params: createPaginationParams() }),
+      apiClient.get('/families', { params: createPaginationParams() }),
     ]);
 
+    const peopleRows = Array.isArray(pRes.data) ? pRes.data : pRes.data?.items ?? [];
+    const familyRows = Array.isArray(fRes.data) ? fRes.data : fRes.data?.items ?? [];
+
     return {
-      people: (pRes.data || []).map((row: any) => ({
+      people: peopleRows.map((row: any) => ({
         ...row,
         displayName: row.display_name,
         birthYear: row.birth_year,
@@ -97,7 +115,7 @@ export async function fetchTreeData(clanId?: string): Promise<{
         parentFamilies: row.parent_families || [],
         families: row.families || [],
       })),
-      families: (fRes.data || []).map((row: any) => ({
+      families: familyRows.map((row: any) => ({
         ...row,
         fatherHandle: row.father_handle,
         motherHandle: row.mother_handle,
@@ -319,10 +337,15 @@ export async function markAllNotificationsAsRead(): Promise<void> {
   }
 }
 
-export async function fetchDirectoryMembers(clan_id: string): Promise<any[]> {
+export async function fetchDirectoryMembers(clan_id: string, limit = DEFAULT_PAGE_LIMIT, page = 1): Promise<any[]> {
   try {
-    const { data } = await apiClient.get('/profiles?status=active');
-    return data || [];
+    const { data } = await apiClient.get('/profiles', {
+      params: {
+        status: 'active',
+        ...createPaginationParams(limit, page),
+      },
+    });
+    return normalizePagedData<any>(data);
   } catch (error) {
     console.error("Failed to fetch directory members", error);
     return [];
@@ -340,10 +363,12 @@ export async function fetchDirectoryMember(id: string): Promise<any | null> {
 }
 
 // --- Admin Users ---
-export async function fetchAllProfiles(): Promise<any[]> {
+export async function fetchAllProfiles(limit = DEFAULT_PAGE_LIMIT, page = 1): Promise<any[]> {
   try {
-    const { data } = await apiClient.get('/profiles');
-    return data || [];
+    const { data } = await apiClient.get('/profiles', {
+      params: createPaginationParams(limit, page),
+    });
+    return normalizePagedData<any>(data);
   } catch (error) {
     return [];
   }
@@ -365,10 +390,12 @@ export async function updateProfileStatus(id: string, status: string): Promise<v
   }
 }
 
-export async function fetchInviteLinks(): Promise<any[]> {
+export async function fetchInviteLinks(limit = DEFAULT_PAGE_LIMIT, page = 1): Promise<any[]> {
   try {
-    const { data } = await apiClient.get('/invite-links');
-    return data || [];
+    const { data } = await apiClient.get('/invite-links', {
+      params: createPaginationParams(limit, page),
+    });
+    return normalizePagedData<any>(data);
   } catch (error) {
     return [];
   }
@@ -392,11 +419,14 @@ export async function deleteInviteLink(id: string): Promise<void> {
 }
 
 // --- Admin Edits ---
-export async function fetchAllContributions(filter?: string): Promise<any[]> {
+export async function fetchAllContributions(filter?: string, limit = DEFAULT_PAGE_LIMIT, page = 1): Promise<any[]> {
   try {
-    const params = filter && filter !== 'all' ? { status: filter } : {};
+    const params = {
+      ...(filter && filter !== 'all' ? { status: filter } : {}),
+      ...createPaginationParams(limit, page),
+    };
     const { data } = await apiClient.get('/contributions', { params });
-    return data || [];
+    return normalizePagedData<any>(data);
   } catch (error) {
     return [];
   }

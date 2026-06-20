@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestj
 import { SessionsService } from './sessions.service';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
-import { normalizeOffsetPagination } from '../common/utils/pagination.util';
+import { normalizePagePagination } from '../common/utils/pagination.util';
 
 @Controller('sessions')
 export class SessionsController {
@@ -14,8 +14,8 @@ export class SessionsController {
   }
 
   @Get()
-  findAll(@Query('limit') limit?: string, @Query('offset') offset?: string) {
-    const pagination = normalizeOffsetPagination(limit, offset);
+  findAll(@Query('limit') limit?: string, @Query('page') page?: string) {
+    const pagination = normalizePagePagination(page, limit);
     return this.sessionsService.findAll(pagination.limit, pagination.offset);
   }
 

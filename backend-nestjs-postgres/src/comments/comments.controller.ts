@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, 
 import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
-import { normalizeOffsetPagination } from '../common/utils/pagination.util';
+import { normalizePagePagination, buildPagedResponse } from '../common/utils/pagination.util';
 
 
 @Controller('comments')
@@ -20,14 +20,20 @@ export class CommentsController {
   }
 
   @Get()
-  findAll(
+  async findAll(
     @Query('postId') postId?: string,
     @Query('personHandle') personHandle?: string,
+    @Query('page') page?: string,
     @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
   ) {
-    const pagination = normalizeOffsetPagination(limit, offset);
-    return this.commentsService.findAll(postId, personHandle, pagination.limit, pagination.offset);
+    const pagination = normalizePagePagination(page, limit);
+    const items = await this.commentsService.findAll(
+      postId,
+      personHandle,
+      pagination.limit,
+      pagination.offset,
+    );
+    return buildPagedResponse(items, pagination.page, pagination.limit);
   }
 
   @Get(':id')
