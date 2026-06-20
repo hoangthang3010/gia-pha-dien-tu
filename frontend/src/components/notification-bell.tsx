@@ -10,19 +10,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { fetchNotifications, fetchUnreadNotificationsCount } from "@/lib/supabase-data";
+import { fetchNotifications, fetchUnreadNotificationsCount, NotificationItem } from "@/lib/supabase-data";
 import { useAuth } from "@/components/auth-provider";
 import { useAuthStore } from "@/stores/auth-store";
-
-interface NotificationItem {
-  id: string;
-  type: string;
-  title: string;
-  message: string;
-  link_url: string | null;
-  is_read: boolean;
-  created_at: string;
-}
 
 export function NotificationBell() {
   const router = useRouter();

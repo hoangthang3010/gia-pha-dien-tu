@@ -7,6 +7,28 @@ import type { TreeNode, TreeFamily } from "./tree-layout";
 
 export type { TreeNode, TreeFamily };
 
+export interface NotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  link_url: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+function mapRowToNotificationItem(row: any): NotificationItem {
+  return {
+    id: String(row.id || ""),
+    type: String(row.type || ""),
+    title: String(row.title || ""),
+    message: String(row.message || ""),
+    link_url: row.link_url !== undefined && row.link_url !== null ? String(row.link_url) : null,
+    is_read: Boolean(row.is_read),
+    created_at: String(row.created_at || ""),
+  };
+}
+
 const DEFAULT_PAGE_LIMIT = 200;
 
 export function createPaginationParams(limit = DEFAULT_PAGE_LIMIT, page = 1) {
@@ -310,12 +332,16 @@ export async function fetchDashboardStats(clanId: string): Promise<any> {
   }
 }
 
-export async function fetchNotifications(limit = 50, cursor?: string): Promise<{ items: any[]; nextCursor?: string | null; }> {
+export async function fetchNotifications(limit = 50, cursor?: string): Promise<{ items: NotificationItem[]; nextCursor?: string | null; }> {
   try {
     const params: any = { limit };
     if (cursor) params.cursor = cursor;
     const { data } = await apiClient.get('/notifications', { params });
-    return data || { items: [], nextCursor: null };
+    const response = data || { items: [], nextCursor: null };
+    return {
+      items: (response.items || []).map(mapRowToNotificationItem),
+      nextCursor: response.nextCursor || null,
+    };
   } catch (error) {
     return { items: [], nextCursor: null };
   }

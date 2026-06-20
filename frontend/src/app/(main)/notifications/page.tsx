@@ -7,17 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/components/auth-provider";
-import { fetchNotifications as fetchNotifs, markNotificationAsRead, markAllNotificationsAsRead } from "@/lib/supabase-data";
-
-interface NotificationItem {
-  id: string;
-  type: string;
-  title: string;
-  message: string;
-  link_url: string | null;
-  is_read: boolean;
-  created_at: string;
-}
+import { fetchNotifications as fetchNotifs, markNotificationAsRead, markAllNotificationsAsRead, NotificationItem } from "@/lib/supabase-data";
 
 const typeIcons: Record<string, string> = {
   NEW_POST: "📝",
