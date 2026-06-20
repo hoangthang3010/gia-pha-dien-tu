@@ -20,10 +20,12 @@ export class MediaService {
     return this.mediaRepository.save(newMedia);
   }
 
-  async findAll(state?: string): Promise<Media[]> {
+  async findAll(state?: string, limit = 50, offset = 0): Promise<Media[]> {
     const query = this.mediaRepository.createQueryBuilder('media')
       .leftJoinAndSelect('media.uploader', 'uploader')
-      .orderBy('media.created_at', 'DESC');
+      .orderBy('media.created_at', 'DESC')
+      .skip(offset)
+      .take(limit);
 
     if (state && state.toLowerCase() !== 'all') {
       query.where('media.state = :state', { state });

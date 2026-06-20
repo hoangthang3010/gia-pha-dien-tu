@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ForbiddenException, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ForbiddenException, Res, UseGuards, Query } from '@nestjs/common';
 import { ClansService } from './clans.service';
 import { CreateClanDto } from './dto/create-clan.dto';
 import { UpdateClanDto } from './dto/update-clan.dto';
@@ -6,6 +6,7 @@ import type { Response } from 'express';
 import { hasClanAccess } from '../common/utils/authorization.util';
 import { User } from '../common/decorators/user.decorator';
 import { LoadClanIdsGuard } from '../common/guards/load-clan-ids.guard';
+import { normalizeOffsetPagination } from '../common/utils/pagination.util';
 
 @Controller('clans')
 export class ClansController {
@@ -17,8 +18,9 @@ export class ClansController {
   }
 
   @Get()
-  findAll() {
-    return this.clansService.findAll();
+  findAll(@Query('limit') limit?: string, @Query('offset') offset?: string) {
+    const pagination = normalizeOffsetPagination(limit, offset);
+    return this.clansService.findAll(pagination.limit, pagination.offset);
   }
 
   @Post(':id/select')

@@ -18,9 +18,14 @@ export class ContributionsService {
     return this.contributionsRepository.save(newContrib);
   }
 
-  findAll(status?: string) {
+  findAll(status?: string, limit = 50, offset = 0) {
     const where = status ? { status } : {};
-    return this.contributionsRepository.find({ where, order: { created_at: 'DESC' } });
+    return this.contributionsRepository.find({
+      where,
+      order: { created_at: 'DESC' },
+      skip: offset,
+      take: limit,
+    });
   }
 
   async update(id: string, payload: any) {

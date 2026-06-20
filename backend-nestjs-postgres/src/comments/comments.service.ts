@@ -52,10 +52,12 @@ export class CommentsService {
     return savedComment;
   }
 
-  async findAll(postId?: string, personHandle?: string): Promise<Comment[]> {
+  async findAll(postId?: string, personHandle?: string, limit = 50, offset = 0): Promise<Comment[]> {
     const query = this.commentsRepository.createQueryBuilder('comment')
       .leftJoinAndSelect('comment.author', 'author')
-      .orderBy('comment.created_at', 'ASC');
+      .orderBy('comment.created_at', 'ASC')
+      .skip(offset)
+      .take(limit);
 
     if (postId) {
       query.where('comment.post_id = :postId', { postId });

@@ -15,8 +15,12 @@ export class InviteLinksService {
     return this.inviteLinksRepository.save(link);
   }
 
-  findAll() {
-    return this.inviteLinksRepository.find({ order: { created_at: 'DESC' } });
+  findAll(limit = 50, offset = 0) {
+    return this.inviteLinksRepository.find({
+      order: { created_at: 'DESC' },
+      skip: offset,
+      take: limit,
+    });
   }
 
   async remove(id: string) {

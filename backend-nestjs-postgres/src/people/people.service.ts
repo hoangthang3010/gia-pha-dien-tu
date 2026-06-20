@@ -20,11 +20,18 @@ export class PeopleService {
     return this.peopleRepository.save(person);
   }
 
-  async findAll(clanId?: string): Promise<Person[]> {
+  async findAll(clanId?: string, limit = 50, offset = 0): Promise<Person[]> {
+    const findOptions: any = {
+      order: { created_at: 'DESC' },
+      skip: offset,
+      take: limit,
+    };
+
     if (clanId) {
-      return this.peopleRepository.find({ where: { clan_id: clanId } });
+      findOptions.where = { clan_id: clanId };
     }
-    return this.peopleRepository.find();
+
+    return this.peopleRepository.find(findOptions);
   }
 
   async findOne(handle: string): Promise<Person> {

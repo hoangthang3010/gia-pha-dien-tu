@@ -23,10 +23,12 @@ export class EventsService {
     return this.eventsRepository.save(newEvent);
   }
 
-  async findAll(clanId?: string): Promise<Event[]> {
+  async findAll(clanId?: string, limit = 50, offset = 0): Promise<Event[]> {
     const query = this.eventsRepository.createQueryBuilder('event')
       .leftJoinAndSelect('event.creator', 'creator')
-      .orderBy('event.start_at', 'DESC');
+      .orderBy('event.start_at', 'DESC')
+      .skip(offset)
+      .take(limit);
 
     if (clanId) {
       query.where('event.clan_id = :clanId', { clanId });

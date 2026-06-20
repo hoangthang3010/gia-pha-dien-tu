@@ -17,8 +17,12 @@ export class ClansService {
     return 'This action adds a new clan';
   }
 
-  async findAll() {
-    return await this.clanRepository.find();
+  async findAll(limit = 50, offset = 0) {
+    return await this.clanRepository.find({
+      order: { created_at: 'DESC' },
+      skip: offset,
+      take: limit,
+    });
   }
 
   findOne(id: string) {

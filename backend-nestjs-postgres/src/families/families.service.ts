@@ -17,11 +17,17 @@ export class FamiliesService {
     return this.familiesRepository.save(family);
   }
 
-  async findAll(clanId?: string): Promise<Family[]> {
+  async findAll(clanId?: string, limit = 50, offset = 0): Promise<Family[]> {
+    const query = this.familiesRepository.createQueryBuilder('family')
+      .orderBy('family.created_at', 'DESC')
+      .skip(offset)
+      .take(limit);
+
     if (clanId) {
-      return this.familiesRepository.find({ where: { clan_id: clanId } });
+      query.where('family.clan_id = :clanId', { clanId });
     }
-    return this.familiesRepository.find();
+
+    return query.getMany();
   }
 
   async findOne(handle: string): Promise<Family> {

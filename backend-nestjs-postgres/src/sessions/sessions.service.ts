@@ -8,8 +8,8 @@ export class SessionsService {
     return 'This action adds a new session';
   }
 
-  findAll() {
-    return `This action returns all sessions`;
+  findAll(limit = 50, offset = 0) {
+    return `This action returns all sessions (limit=${limit}, offset=${offset})`;
   }
 
   findOne(id: number) {

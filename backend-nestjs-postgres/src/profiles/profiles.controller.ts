@@ -4,6 +4,7 @@ import { ClanId } from '../common/decorators/clan-id.decorator';
 import { User } from '../common/decorators/user.decorator';
 import { LoadClanIdsGuard } from '../common/guards/load-clan-ids.guard';
 import { isAdmin } from '../common/utils/authorization.util';
+import { normalizeOffsetPagination } from '../common/utils/pagination.util';
 
 @Controller('profiles')
 export class ProfilesController {
@@ -16,8 +17,15 @@ export class ProfilesController {
 
   @Get()
   @UseGuards(LoadClanIdsGuard)
-  findAll(@User() user: any, @Query('status') status?: string, @ClanId() clanId?: string) {
+  findAll(
+    @User() user: any,
+    @Query('status') status?: string,
+    @ClanId() clanId?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
     const { clanIds } = user;
+    const pagination = normalizeOffsetPagination(limit, offset);
 
     if (!isAdmin(user)) {
       if (clanId && !clanIds.includes(clanId)) {
@@ -27,10 +35,12 @@ export class ProfilesController {
       return this.profilesService.findProfilesInSameClan(
         clanId ?? clanIds[0],
         status,
+        pagination.limit,
+        pagination.offset,
       );
     }
 
-    return this.profilesService.findAll(status, clanId);
+    return this.profilesService.findAll(status, clanId, pagination.limit, pagination.offset);
   }
 
   @Get(':id')

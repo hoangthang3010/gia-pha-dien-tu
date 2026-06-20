@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { ClanId } from '../common/decorators/clan-id.decorator';
 import { LoadClanIdsGuard } from '../common/guards/load-clan-ids.guard';
+import { normalizeOffsetPagination } from '../common/utils/pagination.util';
 
 
 @Controller('posts')
@@ -18,8 +19,13 @@ export class PostsController {
 
   @Get()
   @UseGuards(LoadClanIdsGuard)
-  findAll(@ClanId() clanId: string) {
-    return this.postsService.findAll(clanId);
+  findAll(
+    @ClanId() clanId: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const pagination = normalizeOffsetPagination(limit, offset);
+    return this.postsService.findAll(clanId, pagination.limit, pagination.offset);
   }
 
   @Get(':id')

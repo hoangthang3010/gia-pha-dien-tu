@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { SessionsService } from './sessions.service';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
+import { normalizeOffsetPagination } from '../common/utils/pagination.util';
 
 @Controller('sessions')
 export class SessionsController {
@@ -13,8 +14,9 @@ export class SessionsController {
   }
 
   @Get()
-  findAll() {
-    return this.sessionsService.findAll();
+  findAll(@Query('limit') limit?: string, @Query('offset') offset?: string) {
+    const pagination = normalizeOffsetPagination(limit, offset);
+    return this.sessionsService.findAll(pagination.limit, pagination.offset);
   }
 
   @Get(':id')

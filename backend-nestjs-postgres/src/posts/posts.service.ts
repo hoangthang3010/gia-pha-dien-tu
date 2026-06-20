@@ -20,12 +20,14 @@ export class PostsService {
     return this.postsRepository.save(newPost);
   }
 
-  async findAll(clanId?: string): Promise<PostEntity[]> {
+  async findAll(clanId?: string, limit = 50, offset = 0): Promise<PostEntity[]> {
     const query = this.postsRepository.createQueryBuilder('post')
       .leftJoinAndSelect('post.author', 'author')
       .loadRelationCountAndMap('post.comment_count', 'post.comments')
       .orderBy('post.is_pinned', 'DESC')
-      .addOrderBy('post.created_at', 'DESC');
+      .addOrderBy('post.created_at', 'DESC')
+      .skip(offset)
+      .take(limit);
 
     if (clanId) {
       query.where('post.clan_id = :clanId', { clanId });

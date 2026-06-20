@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
 import { ContributionsService } from './contributions.service';
+import { normalizeOffsetPagination } from '../common/utils/pagination.util';
 
 @Controller('contributions')
 export class ContributionsController {
@@ -11,8 +12,13 @@ export class ContributionsController {
   }
 
   @Get()
-  findAll(@Query('status') status?: string) {
-    return this.contributionsService.findAll(status);
+  findAll(
+    @Query('status') status?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const pagination = normalizeOffsetPagination(limit, offset);
+    return this.contributionsService.findAll(status, pagination.limit, pagination.offset);
   }
 
   @Patch(':id')

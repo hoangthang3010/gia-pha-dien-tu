@@ -15,7 +15,7 @@ export class ProfilesService {
     return this.profilesRepository.save(profile);
   }
 
-  async findAll(status?: string, clanId?: string) {
+  async findAll(status?: string, clanId?: string, limit = 50, offset = 0) {
     const qb = this.profilesRepository.createQueryBuilder('profile');
 
     if (clanId) {
@@ -27,10 +27,14 @@ export class ProfilesService {
       qb.andWhere('profile.status = :status', { status });
     }
 
-    return qb.orderBy('profile.created_at', 'DESC').getMany();
+    return qb
+      .orderBy('profile.created_at', 'DESC')
+      .skip(offset)
+      .take(limit)
+      .getMany();
   }
 
-  async findProfilesInSameClan(clanId: string, status?: string) {
+  async findProfilesInSameClan(clanId: string, status?: string, limit = 50, offset = 0) {
     const qb = this.profilesRepository
       .createQueryBuilder('profile')
       .innerJoin('profile.clan_memberships', 'cm')
@@ -40,7 +44,11 @@ export class ProfilesService {
       qb.andWhere('profile.status = :status', { status });
     }
 
-    return qb.orderBy('profile.created_at', 'DESC').getMany();
+    return qb
+      .orderBy('profile.created_at', 'DESC')
+      .skip(offset)
+      .take(limit)
+      .getMany();
   }
 
   async findOne(id: string) {

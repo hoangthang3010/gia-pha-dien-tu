@@ -16,16 +16,22 @@ export class ClanMembersService {
     return 'This action adds a new clanMember';
   }
 
-  async findAll() {
+  async findAll(limit = 50, offset = 0) {
     return await this.clanMemberRepository.find({
       relations: ['clan'],
+      order: { id: 'DESC' },
+      skip: offset,
+      take: limit,
     });
   }
 
-  async findAllByUserId(userId: string) {
+  async findAllByUserId(userId: string, limit = 50, offset = 0) {
     return await this.clanMemberRepository.find({
       where: { user_id: userId },
       relations: ['clan'],
+      order: { id: 'DESC' },
+      skip: offset,
+      take: limit,
     });
   }
 

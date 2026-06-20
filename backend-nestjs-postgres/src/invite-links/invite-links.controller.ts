@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { InviteLinksService } from './invite-links.service';
+import { normalizeOffsetPagination } from '../common/utils/pagination.util';
 
 @Controller('invite-links')
 export class InviteLinksController {
@@ -11,8 +12,9 @@ export class InviteLinksController {
   }
 
   @Get()
-  findAll() {
-    return this.inviteLinksService.findAll();
+  findAll(@Query('limit') limit?: string, @Query('offset') offset?: string) {
+    const pagination = normalizeOffsetPagination(limit, offset);
+    return this.inviteLinksService.findAll(pagination.limit, pagination.offset);
   }
 
   @Delete(':id')
