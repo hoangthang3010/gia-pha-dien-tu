@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Notification } from './entities/notification.entity';
 import { NotificationsStreamService } from './notifications-stream.service';
+import { encodeCursor, decodeCursor } from './pagination.util';
 
 @Injectable()
 export class NotificationsService {
@@ -32,12 +33,35 @@ export class NotificationsService {
     return savedNotification;
   }
 
-  async findAll(userId: string) {
-    return this.notificationsRepository.find({
-      where: { user_id: userId },
-      order: { created_at: 'DESC' },
-      take: 50,
-    });
+  async findAll(userId: string, limit = 50, cursor?: string) {
+    const maxLimit = Math.min(limit || 50, 200);
+
+    const qb = this.notificationsRepository.createQueryBuilder('n')
+      .where('n.user_id = :userId', { userId })
+      .orderBy('n.created_at', 'DESC')
+      .addOrderBy('n.id', 'DESC')
+      .limit(maxLimit);
+
+    if (cursor) {
+      const parsed = decodeCursor(cursor);
+      if (parsed && parsed.created_at && parsed.id) {
+        qb.andWhere('(n.created_at, n.id) < (:created_at, :id)', {
+          created_at: parsed.created_at,
+          id: parsed.id,
+        });
+      }
+    }
+
+    const items = await qb.getMany();
+
+    let nextCursor: string | null = null;
+    if (items.length === maxLimit && items.length > 0) {
+      const last = items[items.length - 1];
+      const createdAt = last.created_at instanceof Date ? last.created_at.toISOString() : String(last.created_at);
+      nextCursor = encodeCursor(createdAt, String(last.id));
+    }
+
+    return { items, nextCursor };
   }
 
   async getUnreadCount(userId: string) {

@@ -32,14 +32,36 @@ export default function NotificationsPage() {
   const { user, isLoggedIn } = useAuth();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchNotifications = useCallback(async () => {
+  const fetchNotifications = useCallback(async (cursor?: string) => {
     if (!user) return;
     setLoading(true);
-    const data = await fetchNotifs();
-    if (data) setNotifications(data);
+    const data = await fetchNotifs(50, cursor);
+    if (data && Array.isArray(data.items)) {
+      if (cursor) {
+        setNotifications((prev) => [...prev, ...data.items]);
+      } else {
+        setNotifications(data.items);
+      }
+      setNextCursor(data.nextCursor || null);
+    }
     setLoading(false);
   }, [user]);
+
+  const loadMore = async () => {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    const data = await fetchNotifs(50, nextCursor);
+    if (data && Array.isArray(data.items) && data.items.length > 0) {
+      setNotifications((prev) => [...prev, ...data.items]);
+      setNextCursor(data.nextCursor || null);
+    } else {
+      setNextCursor(null);
+    }
+    setLoadingMore(false);
+  };
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -132,6 +154,14 @@ export default function NotificationsPage() {
               </CardContent>
             </Card>
           ))}
+
+          {nextCursor && (
+            <div className="flex justify-center mt-4">
+              <Button onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? 'Đang tải...' : 'Tải thêm'}
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

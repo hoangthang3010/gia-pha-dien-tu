@@ -292,12 +292,14 @@ export async function fetchDashboardStats(clanId: string): Promise<any> {
   }
 }
 
-export async function fetchNotifications(): Promise<any[]> {
+export async function fetchNotifications(limit = 50, cursor?: string): Promise<{ items: any[]; nextCursor?: string | null; }> {
   try {
-    const { data } = await apiClient.get('/notifications');
-    return data || [];
+    const params: any = { limit };
+    if (cursor) params.cursor = cursor;
+    const { data } = await apiClient.get('/notifications', { params });
+    return data || { items: [], nextCursor: null };
   } catch (error) {
-    return [];
+    return { items: [], nextCursor: null };
   }
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { Bell, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -45,18 +45,18 @@ export function NotificationBell() {
     [notifications],
   );
 
-  const fetchLatestNotifications = async () => {
+  const fetchLatestNotifications = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const data = await fetchNotifications();
-      setNotifications(Array.isArray(data) ? data.slice(0, 10) : []);
+      const data = await fetchNotifications(10);
+      setNotifications(Array.isArray(data.items) ? data.items : []);
     } catch {
       setNotifications([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (!isLoggedIn || !user) return;
@@ -71,6 +71,7 @@ export function NotificationBell() {
     };
 
     fetchCount();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchLatestNotifications();
 
     if (
@@ -115,7 +116,7 @@ export function NotificationBell() {
 
     const interval = setInterval(fetchCount, 30000);
     return () => clearInterval(interval);
-  }, [isLoggedIn, user, useSse, notificationStreamUrl]);
+  }, [isLoggedIn, user, useSse, notificationStreamUrl, fetchLatestNotifications]);
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>

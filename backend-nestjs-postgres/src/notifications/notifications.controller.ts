@@ -7,6 +7,7 @@ import {
   Request,
   Res,
   Req,
+  Query,
 } from '@nestjs/common';
 import type { Response, Request as ExpressRequest } from 'express';
 import { NotificationsService } from './notifications.service';
@@ -22,8 +23,9 @@ export class NotificationsController {
   ) {}
 
   @Get()
-  findAll(@Request() req: AuthRequest) {
-    return this.notificationsService.findAll(req.user.id);
+  findAll(@Request() req: AuthRequest, @Query('limit') limit?: string, @Query('cursor') cursor?: string) {
+    const lim = limit ? parseInt(limit, 10) : undefined;
+    return this.notificationsService.findAll(req.user.id, lim, cursor);
   }
 
   @Get('unread-count')
