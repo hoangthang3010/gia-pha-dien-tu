@@ -52,7 +52,8 @@ export function PersonNode({ data, ...card }: any) {
         item={{
           x: data.positionAbsoluteX,
           y: data.positionAbsoluteY,
-          ...data.data,
+          node: { ...data.data },
+          generation: data.data?.generation
         }}
         isHighlighted={highlightHandles.has(data?.data?.handle)}
         isFocused={focusPerson === data?.data?.handle}

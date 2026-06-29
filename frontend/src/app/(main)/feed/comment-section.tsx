@@ -17,7 +17,7 @@ export default function CommentSection({ postId }: { postId: string }) {
     setLoading(true);
     try {
       const { data } = await apiClient.get(`/comments?postId=${postId}`);
-      if (data) setComments(data);
+      if (data?.items) setComments(data.items);
     } catch (err: any) {
       console.error("Failed to load comments:", err.message);
     } finally {

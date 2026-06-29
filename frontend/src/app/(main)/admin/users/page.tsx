@@ -94,35 +94,56 @@ export default function AdminUsersPage() {
   const [inviteMaxUses, setInviteMaxUses] = useState(1);
   const [copied, setCopied] = useState<string | null>(null);
 
+  // Users pagination states
+  const [usersPage, setUsersPage] = useState(1);
+  const [usersLimit, setUsersLimit] = useState(10);
+  const [usersNextPage, setUsersNextPage] = useState<number | null>(null);
+  const [usersPrevPage, setUsersPrevPage] = useState<number | null>(null);
+
+  // Invites pagination states
+  const [invitesPage, setInvitesPage] = useState(1);
+  const [invitesLimit, setInvitesLimit] = useState(10);
+  const [invitesNextPage, setInvitesNextPage] = useState<number | null>(null);
+  const [invitesPrevPage, setInvitesPrevPage] = useState<number | null>(null);
+
   // Fetch users from profiles table
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchAllProfiles();
-      if (data) setUsers(data);
+      const res = await fetchAllProfiles(usersLimit, usersPage);
+      setUsers(res.items);
+      setUsersNextPage(res.nextPage);
+      setUsersPrevPage(res.prevPage);
     } catch {
       /* ignore */
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [usersPage, usersLimit]);
 
   // Fetch invite links
   const fetchInvites = useCallback(async () => {
     try {
-      const data = await fetchInviteLinks();
-      if (data) setInvites(data);
+      const res = await fetchInviteLinks(invitesLimit, invitesPage);
+      setInvites(res.items);
+      setInvitesNextPage(res.nextPage);
+      setInvitesPrevPage(res.prevPage);
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [invitesPage, invitesLimit]);
 
   useEffect(() => {
     if (!authLoading && isAdmin) {
       fetchUsers();
+    }
+  }, [authLoading, isAdmin, fetchUsers]);
+
+  useEffect(() => {
+    if (!authLoading && isAdmin) {
       fetchInvites();
     }
-  }, [authLoading, isAdmin, fetchUsers, fetchInvites]);
+  }, [authLoading, isAdmin, fetchInvites]);
 
   // Create invite link
   const handleCreateInvite = useCallback(async () => {
@@ -310,89 +331,136 @@ export default function AdminUsersPage() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tên</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Quyền</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead>Ngày tham gia</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">
-                      {user.display_name || user.email.split("@")[0]}
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={ROLE_COLORS[user.role] || ""}
-                      >
-                        {user.role.toUpperCase()}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          user.status === "active" ? "default" : "destructive"
-                        }
-                      >
-                        {user.status === "active" ? "Hoạt động" : "Tạm ngưng"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(user.created_at).toLocaleDateString("vi-VN")}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => handleChangeRole(user.id, "admin")}
-                          >
-                            Đặt Admin
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleChangeRole(user.id, "editor")}
-                          >
-                            Đặt Editor
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleChangeRole(user.id, "member")}
-                          >
-                            Đặt Member
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className={
-                              user.status === "active"
-                                ? "text-destructive"
-                                : "text-green-600"
-                            }
-                            onClick={() =>
-                              handleToggleStatus(user.id, user.status)
-                            }
-                          >
-                            {user.status === "active"
-                              ? "Tạm ngưng"
-                              : "Kích hoạt lại"}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tên</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Quyền</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                    <TableHead>Ngày tham gia</TableHead>
+                    <TableHead className="w-12"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">
+                        {user.display_name || user.email.split("@")[0]}
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className={ROLE_COLORS[user.role] || ""}
+                        >
+                          {user.role.toUpperCase()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            user.status === "active" ? "default" : "destructive"
+                          }
+                        >
+                          {user.status === "active" ? "Hoạt động" : "Tạm ngưng"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(user.created_at).toLocaleDateString("vi-VN")}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleChangeRole(user.id, "admin")}
+                            >
+                              Đặt Admin
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleChangeRole(user.id, "editor")}
+                            >
+                              Đặt Editor
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleChangeRole(user.id, "member")}
+                            >
+                              Đặt Member
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className={
+                                user.status === "active"
+                                  ? "text-destructive"
+                                  : "text-green-600"
+                              }
+                              onClick={() =>
+                                handleToggleStatus(user.id, user.status)
+                              }
+                            >
+                              {user.status === "active"
+                                ? "Tạm ngưng"
+                                : "Kích hoạt lại"}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {/* Pagination Controls for Users */}
+              <div className="flex items-center justify-between px-6 py-4 border-t border-border">
+                <div className="flex-1 text-sm text-muted-foreground">
+                  Trang hiện tại: {usersPage}
+                </div>
+                <div className="flex items-center space-x-6 lg:space-x-8">
+                  <div className="flex items-center space-x-2">
+                    <p className="text-sm font-medium">Hàng mỗi trang</p>
+                    <select
+                      value={usersLimit}
+                      onChange={(e) => {
+                        setUsersLimit(Number(e.target.value));
+                        setUsersPage(1);
+                      }}
+                      className="h-8 w-[70px] rounded-md border bg-background py-1 px-2 text-sm"
+                    >
+                      {[5, 10, 20, 50].map((size) => (
+                        <option key={size} value={size}>
+                          {size}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      className="h-8 w-8 p-0"
+                      onClick={() => setUsersPage((p) => Math.max(1, p - 1))}
+                      disabled={!usersPrevPage}
+                    >
+                      &lt;
+                    </Button>
+                    <span className="text-sm font-medium px-2">Trang {usersPage}</span>
+                    <Button
+                      variant="outline"
+                      className="h-8 w-8 p-0"
+                      onClick={() => setUsersPage((p) => p + 1)}
+                      disabled={!usersNextPage}
+                    >
+                      &gt;
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -412,67 +480,113 @@ export default function AdminUsersPage() {
               Chưa có link mời nào
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Link</TableHead>
-                  <TableHead>Quyền</TableHead>
-                  <TableHead>Đã dùng / Tối đa</TableHead>
-                  <TableHead>Ngày tạo</TableHead>
-                  <TableHead className="w-20"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {invites.map((inv) => (
-                  <TableRow key={inv.id}>
-                    <TableCell>
-                      <code className="text-xs bg-muted px-2 py-1 rounded">
-                        ...?code={inv.code.slice(0, 8)}...
-                      </code>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={ROLE_COLORS[inv.role] || ""}
-                      >
-                        {inv.role.toUpperCase()}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {inv.used_count} / {inv.max_uses}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Date(inv.created_at).toLocaleDateString("vi-VN")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleCopy(getInviteUrl(inv.code))}
-                          title="Sao chép link"
-                        >
-                          {copied === getInviteUrl(inv.code) ? (
-                            <Check className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteInvite(inv.id)}
-                          title="Xóa link"
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Link</TableHead>
+                    <TableHead>Quyền</TableHead>
+                    <TableHead>Đã dùng / Tối đa</TableHead>
+                    <TableHead>Ngày tạo</TableHead>
+                    <TableHead className="w-20"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {invites.map((inv) => (
+                    <TableRow key={inv.id}>
+                      <TableCell>
+                        <code className="text-xs bg-muted px-2 py-1 rounded">
+                          ...?code={inv.code.slice(0, 8)}...
+                        </code>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className={ROLE_COLORS[inv.role] || ""}
+                        >
+                          {inv.role.toUpperCase()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {inv.used_count} / {inv.max_uses}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {new Date(inv.created_at).toLocaleDateString("vi-VN")}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleCopy(getInviteUrl(inv.code))}
+                            title="Sao chép link"
+                          >
+                            {copied === getInviteUrl(inv.code) ? (
+                              <Check className="h-4 w-4 text-green-600" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteInvite(inv.id)}
+                            title="Xóa link"
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              <div className="flex items-center justify-between px-6 py-4 border-t border-border">
+                <div className="flex-1 text-sm text-muted-foreground">
+                  Trang hiện tại: {invitesPage}
+                </div>
+                <div className="flex items-center space-x-6 lg:space-x-8">
+                  <div className="flex items-center space-x-2">
+                    <p className="text-sm font-medium">Hàng mỗi trang</p>
+                    <select
+                      value={invitesLimit}
+                      onChange={(e) => {
+                        setInvitesLimit(Number(e.target.value));
+                        setInvitesPage(1);
+                      }}
+                      className="h-8 w-[70px] rounded-md border bg-background py-1 px-2 text-sm"
+                    >
+                      {[5, 10, 20, 50].map((size) => (
+                        <option key={size} value={size}>
+                          {size}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      className="h-8 w-8 p-0"
+                      onClick={() => setInvitesPage((p) => Math.max(1, p - 1))}
+                      disabled={!invitesPrevPage}
+                    >
+                      &lt;
+                    </Button>
+                    <span className="text-sm font-medium px-2">Trang {invitesPage}</span>
+                    <Button
+                      variant="outline"
+                      className="h-8 w-8 p-0"
+                      onClick={() => setInvitesPage((p) => p + 1)}
+                      disabled={!invitesNextPage}
+                    >
+                      &gt;
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

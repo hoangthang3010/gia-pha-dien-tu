@@ -42,8 +42,10 @@ function PersonCard({
   onSetFocus: (handle: string) => void;
   onToggleCollapse: (handle: string) => void;
 }) {
+  const { x, y } = item || {};
+  console.log(item);
+
   const {
-    x, y,
     gender = 1,
     isLiving,
     isPatrilineal,
@@ -51,7 +53,7 @@ function PersonCard({
     displayName,
     birthYear,
     deathYear,
-  } = item || {};
+  } = item?.node || {};
 
   const generation = item.generation;
 

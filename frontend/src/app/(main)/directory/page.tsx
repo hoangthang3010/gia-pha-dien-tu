@@ -27,24 +27,36 @@ export default function DirectoryPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  const fetchMembers = useCallback(async (clan_id: string) => {
-    setLoading(true);
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [nextPage, setNextPage] = useState<number | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const fetchMembers = useCallback(async (clan_id: string, pageNum = 1) => {
+    if (pageNum === 1) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
     try {
-      const data = await fetchDirectoryMembers(clan_id);
-      if (data) setMembers(data);
+      const res = await fetchDirectoryMembers(clan_id, 12, pageNum); // 12 items per page fits 3-column layout nicely
+      setMembers((prev) => (pageNum === 1 ? res.items : [...prev, ...res.items]));
+      setNextPage(res.nextPage);
+      setCurrentPage(res.page);
     } catch {
       /* ignore */
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [clanId]);
+  }, []);
 
   useEffect(() => {
     if (!clanId) {
-      setLoading(false)
-      return
+      setLoading(false);
+      return;
     }
-    fetchMembers(clanId);
+    fetchMembers(clanId, 1);
   }, [fetchMembers, clanId]);
 
   const filtered = members.filter(
@@ -98,31 +110,44 @@ export default function DirectoryPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((m) => (
-            <Card
-              key={m.id}
-              className="hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => router.push(`/directory/${m.id}`)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="h-5 w-5 text-primary" />
+        <div className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((m) => (
+              <Card
+                key={m.id}
+                className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => router.push(`/directory/${m.id}`)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">
+                        {m.display_name || m.email.split("@")[0]}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {m.email}
+                      </p>
+                    </div>
+                    {getRoleBadge(m.role)}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">
-                      {m.display_name || m.email.split("@")[0]}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {m.email}
-                    </p>
-                  </div>
-                  {getRoleBadge(m.role)}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {nextPage && (
+            <div className="flex justify-center mt-6">
+              <Button
+                onClick={() => fetchMembers(clanId!, nextPage)}
+                disabled={loadingMore}
+              >
+                {loadingMore ? "Đang tải..." : "Xem thêm"}
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -5,10 +5,15 @@ import { UpdateClanMemberDto } from './dto/update-clan-member.dto';
 import { isAdmin } from '../common/utils/authorization.util';
 import { User } from '../common/decorators/user.decorator';
 import { normalizePagePagination, buildPagedResponse } from '../common/utils/pagination.util';
+import { ClansService } from '../clans/clans.service';
 
 @Controller('clan-members')
 export class ClanMembersController {
-  constructor(private readonly clanMembersService: ClanMembersService) { }
+  constructor(
+    private readonly clanMembersService: ClanMembersService,
+    private readonly clansService: ClansService,
+
+  ) { }
 
   @Post()
   create(@Body() createClanMemberDto: CreateClanMemberDto) {
@@ -22,12 +27,21 @@ export class ClanMembersController {
     @Query('page') page?: string,
   ) {
     const pagination = normalizePagePagination(page, limit);
+    let data: any[];
     if (!isAdmin(user)) {
-      const items = await this.clanMembersService.findAllByUserId(user.id, pagination.limit, pagination.offset);
-      return buildPagedResponse(items, pagination.page, pagination.limit);
+      data = await this.clanMembersService.findAllByUserId(user.id, pagination.limit, pagination.offset);
+      return buildPagedResponse(data, pagination.page, pagination.limit);
     }
-    const items = await this.clanMembersService.findAll(pagination.limit, pagination.offset);
-    return buildPagedResponse(items, pagination.page, pagination.limit);
+    data = await this.clansService.findAll(pagination.limit, pagination.offset);
+    data = data.map(item => (
+      {
+        user_id: user.id,
+        role: user.role,
+        clan_id: item.clan_id,
+        clan: item,
+      }
+    ))
+    return buildPagedResponse(data, pagination.page, pagination.limit);
   }
 
   @Get(':id')

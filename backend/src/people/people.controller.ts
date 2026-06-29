@@ -23,9 +23,22 @@ export class PeopleController {
     @ClanId() clanId: string,
     @Query('limit') limit?: string,
     @Query('page') page?: string,
+    @Query('search') search?: string,
+    @Query('gender') gender?: string,
+    @Query('isLiving') isLiving?: string,
   ) {
     const pagination = normalizePagePagination(page, limit);
-    const items = await this.peopleService.findAll(clanId, pagination.limit, pagination.offset);
+    const parsedGender = gender ? parseInt(gender, 10) : undefined;
+    const parsedIsLiving = isLiving === 'true' ? true : isLiving === 'false' ? false : undefined;
+
+    const items = await this.peopleService.findAll(
+      clanId,
+      pagination.limit,
+      pagination.offset,
+      search,
+      parsedGender,
+      parsedIsLiving,
+    );
     return buildPagedResponse(items, pagination.page, pagination.limit);
   }
 

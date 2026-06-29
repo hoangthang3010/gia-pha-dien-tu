@@ -32,7 +32,8 @@ export interface TreeFamily {
   children: string[];
 }
 
-export interface PositionedNode extends TreeNode {
+export interface PositionedNode {
+  node: TreeNode;
   x: number;
   y: number;
   generation: number;
