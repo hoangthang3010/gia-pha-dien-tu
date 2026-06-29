@@ -4,8 +4,6 @@ import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { AuthProvider } from "@/components/auth-provider";
-import { TreeLoader } from "@/components/tree-loader";
-import { ClanLoader } from "@/components/clan-loader";
 import { AuthGate } from "./auth-gate";
 
 export function Providers({ children }: { children: React.ReactNode }) {

@@ -42,11 +42,11 @@ export function Header() {
 
   const initials = profile?.display_name
     ? profile.display_name
-        .split(" ")
-        .map((w) => w[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
     : profile?.email?.slice(0, 2).toUpperCase() || "?";
 
   const handleSignOut = async () => {
@@ -74,7 +74,6 @@ export function Header() {
 
   useEffect(() => {
     if (!clanMemberOpt?.length) return;
-    console.log(clanMemberOpt);
 
     const first = clanMemberOpt[0];
 
@@ -85,7 +84,6 @@ export function Header() {
     if (!clanValue) return;
     handleSelectClan(clanValue.value);
   }, [clanValue]);
-  console.log(clanValue);
 
   const selectedLabel = useMemo(() => {
     return clanMemberOpt.find((c) => c.value === clanValue?.value)?.label;
@@ -112,7 +110,7 @@ export function Header() {
         <Combobox
           value={clanValue}
           items={clanMemberOpt}
-          onValueChange={setClanValue}
+          onValueChange={(val: any) => setClanValue(val || undefined)}
         >
           <ComboboxTrigger
             render={

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import { CreatePersonDto } from './dto/create-person.dto';
 import { UpdatePersonDto } from './dto/update-person.dto';
 import { Person } from './entities/person.entity';
@@ -20,17 +20,35 @@ export class PeopleService {
     return this.peopleRepository.save(person);
   }
 
-  async findAll(clanId?: string, limit = 50, offset = 0): Promise<Person[]> {
+  async findAll(
+    clanId?: string,
+    limit = 50,
+    offset = 0,
+    search?: string,
+    gender?: number,
+    isLiving?: boolean,
+  ): Promise<Person[]> {
     const findOptions: any = {
       order: { created_at: 'DESC' },
       skip: offset,
       take: limit,
     };
 
+    const where: any = {};
     if (clanId) {
-      findOptions.where = { clan_id: clanId };
+      where.clan_id = clanId;
+    }
+    if (search) {
+      where.display_name = ILike(`%${search}%`);
+    }
+    if (gender !== undefined && gender !== null) {
+      where.gender = gender;
+    }
+    if (isLiving !== undefined && isLiving !== null) {
+      where.is_living = isLiving;
     }
 
+    findOptions.where = where;
     return this.peopleRepository.find(findOptions);
   }
 

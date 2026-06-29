@@ -31,6 +31,34 @@ function mapRowToNotificationItem(row: any): NotificationItem {
 
 const DEFAULT_PAGE_LIMIT = 200;
 
+export interface PagedResult<T> {
+  items: T[];
+  page: number;
+  limit: number;
+  nextPage: number | null;
+  prevPage: number | null;
+}
+
+function buildPagedResult<T, R>(data: any, mapFn: (item: T) => R): PagedResult<R> {
+  if (Array.isArray(data)) {
+    return {
+      items: data.map(mapFn),
+      page: 1,
+      limit: data.length || 50,
+      nextPage: null,
+      prevPage: null,
+    };
+  }
+  const items = Array.isArray(data?.items) ? data.items.map(mapFn) : [];
+  return {
+    items,
+    page: Number(data?.page ?? 1),
+    limit: Number(data?.limit ?? 50),
+    nextPage: data?.nextPage !== undefined && data.nextPage !== null ? Number(data.nextPage) : null,
+    prevPage: data?.prevPage !== undefined && data.prevPage !== null ? Number(data.prevPage) : null,
+  };
+}
+
 export function createPaginationParams(limit = DEFAULT_PAGE_LIMIT, page = 1) {
   return {
     limit,
@@ -46,11 +74,25 @@ function normalizePagedData<T>(data: any): T[] {
 // ── Read operations ──
 
 /** Fetch people from NestJS with optional page pagination */
-export async function fetchPeople(limit = DEFAULT_PAGE_LIMIT, page = 1): Promise<TreeNode[]> {
+export async function fetchPeople(
+  limit = DEFAULT_PAGE_LIMIT,
+  page = 1,
+  search?: string,
+  gender?: number,
+  isLiving?: boolean,
+): Promise<PagedResult<TreeNode>> {
   try {
-    const { data } = await apiClient.get('/people', { params: createPaginationParams(limit, page) });
-    const rows = normalizePagedData<any>(data);
-    return rows.map((row) => ({
+    const params: any = {
+      ...createPaginationParams(limit, page),
+    };
+    if (search) params.search = search;
+    if (gender !== undefined && gender !== null) params.gender = gender;
+    if (isLiving !== undefined && isLiving !== null) params.isLiving = isLiving;
+
+    console.log(params);
+
+    const { data } = await apiClient.get('/people', { params });
+    return buildPagedResult(data, (row: any) => ({
       ...row,
       displayName: row.display_name,
       birthYear: row.birth_year,
@@ -63,7 +105,7 @@ export async function fetchPeople(limit = DEFAULT_PAGE_LIMIT, page = 1): Promise
     }));
   } catch (error: any) {
     console.error("Failed to fetch people:", error.message);
-    return [];
+    return { items: [], page: 1, limit, nextPage: null, prevPage: null };
   }
 }
 
@@ -97,12 +139,21 @@ export async function fetchClanMembers(limit = DEFAULT_PAGE_LIMIT, page = 1) {
   try {
     const { data } = await apiClient.get('/clan-members', { params: createPaginationParams(limit, page) });
     const rows = normalizePagedData<any>(data);
-    return rows.map((item) => ({
+    const mapped = rows.map((item) => ({
       label: item.clan?.name,
       value: item.clan?.id,
       role: item.role,
       description: item.clan?.description,
     }));
+    
+    // Deduplicate by clan ID
+    const seen = new Set();
+    return mapped.filter((item) => {
+      if (!item.value) return false;
+      if (seen.has(item.value)) return false;
+      seen.add(item.value);
+      return true;
+    });
   } catch (error) {
     throw error;
   }
@@ -113,8 +164,6 @@ export async function fetchTreeData(clanId?: string): Promise<{
   people: TreeNode[];
   families: TreeFamily[];
 }> {
-  console.log(clanId);
-
   try {
     // clanId is now fetched from the cookie by the backend
     const [pRes, fRes] = await Promise.all([
@@ -363,7 +412,7 @@ export async function markAllNotificationsAsRead(): Promise<void> {
   }
 }
 
-export async function fetchDirectoryMembers(clan_id: string, limit = DEFAULT_PAGE_LIMIT, page = 1): Promise<any[]> {
+export async function fetchDirectoryMembers(clan_id: string, limit = DEFAULT_PAGE_LIMIT, page = 1): Promise<PagedResult<any>> {
   try {
     const { data } = await apiClient.get('/profiles', {
       params: {
@@ -371,10 +420,10 @@ export async function fetchDirectoryMembers(clan_id: string, limit = DEFAULT_PAG
         ...createPaginationParams(limit, page),
       },
     });
-    return normalizePagedData<any>(data);
+    return buildPagedResult(data, (item: any) => item);
   } catch (error) {
     console.error("Failed to fetch directory members", error);
-    return [];
+    return { items: [], page: 1, limit, nextPage: null, prevPage: null };
   }
 }
 
@@ -389,14 +438,14 @@ export async function fetchDirectoryMember(id: string): Promise<any | null> {
 }
 
 // --- Admin Users ---
-export async function fetchAllProfiles(limit = DEFAULT_PAGE_LIMIT, page = 1): Promise<any[]> {
+export async function fetchAllProfiles(limit = DEFAULT_PAGE_LIMIT, page = 1): Promise<PagedResult<any>> {
   try {
     const { data } = await apiClient.get('/profiles', {
       params: createPaginationParams(limit, page),
     });
-    return normalizePagedData<any>(data);
+    return buildPagedResult(data, (item: any) => item);
   } catch (error) {
-    return [];
+    return { items: [], page: 1, limit, nextPage: null, prevPage: null };
   }
 }
 
@@ -416,14 +465,14 @@ export async function updateProfileStatus(id: string, status: string): Promise<v
   }
 }
 
-export async function fetchInviteLinks(limit = DEFAULT_PAGE_LIMIT, page = 1): Promise<any[]> {
+export async function fetchInviteLinks(limit = DEFAULT_PAGE_LIMIT, page = 1): Promise<PagedResult<any>> {
   try {
     const { data } = await apiClient.get('/invite-links', {
       params: createPaginationParams(limit, page),
     });
-    return normalizePagedData<any>(data);
+    return buildPagedResult(data, (item: any) => item);
   } catch (error) {
-    return [];
+    return { items: [], page: 1, limit, nextPage: null, prevPage: null };
   }
 }
 

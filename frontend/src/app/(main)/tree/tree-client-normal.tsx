@@ -38,6 +38,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxTrigger,
+  ComboboxValue,
+} from "@/components/ui/combobox";
 
 import {
   fetchTreeData,
@@ -280,6 +290,10 @@ export default function TreeViewPage() {
   // F3: Stats panel user-hidden
   const [statsHidden, setStatsHidden] = useState(false);
 
+  // Focus selector combobox states
+  const [visibleCount, setVisibleCount] = useState(20);
+  const [comboboxSearch, setComboboxSearch] = useState("");
+
   // Editor mode state
   const [editorMode, setEditorMode] = useState(false);
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
@@ -384,6 +398,7 @@ export default function TreeViewPage() {
       // Load from Supabase
       try {
         const data = await fetchTreeData();
+
         if (data.people.length > 0) {
           setTreeData(data);
           setLoading(false);
@@ -610,9 +625,9 @@ export default function TreeViewPage() {
     const d =
       "filteredPeople" in displayData
         ? {
-            people: (displayData as any).filteredPeople,
-            families: (displayData as any).filteredFamilies,
-          }
+          people: (displayData as any).filteredPeople,
+          families: (displayData as any).filteredFamilies,
+        }
         : displayData;
     // F4: Filter out hidden handles
     const visiblePeople = d.people.filter(
@@ -1337,22 +1352,71 @@ export default function TreeViewPage() {
           </div>
 
           {/* Focus person selector */}
-          {viewMode !== "full" && treeData && (
-            <div className="absolute bottom-2 right-2 bg-background/90 backdrop-blur border rounded-lg px-2 py-1.5 flex items-center gap-1.5 text-xs">
-              <span className="text-muted-foreground">Gốc:</span>
-              <select
-                value={focusPerson || ""}
-                onChange={(e) => setFocusPerson(e.target.value)}
-                className="border rounded px-1.5 py-0.5 text-xs bg-background max-w-[140px]"
-              >
-                {treeData.people.map((p) => (
-                  <option key={p.handle} value={p.handle}>
-                    {p.displayName}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+          {viewMode !== "full" && treeData && (() => {
+            const peopleOptions = treeData.people.map((p) => ({
+              label: p.displayName,
+              value: p.handle,
+            }));
+            const selectedFocusOption = peopleOptions.find((o) => o.value === focusPerson) || null;
+            const query = comboboxSearch.toLowerCase();
+            const filteredPeopleOptions = query
+              ? peopleOptions.filter((o) => o.label.toLowerCase().includes(query))
+              : peopleOptions;
+
+            return (
+              <div className="absolute bottom-2 right-2 bg-background/90 backdrop-blur border rounded-lg px-2 py-1.5 flex items-center gap-1.5 text-xs z-50">
+                <span className="text-muted-foreground">Gốc:</span>
+                <Combobox
+                  value={selectedFocusOption}
+                  items={filteredPeopleOptions.slice(0, visibleCount)}
+                  onValueChange={(opt: any) => {
+                    if (opt) setFocusPerson(opt.value);
+                  }}
+                  onInputValueChange={(val) => {
+                    setComboboxSearch(val);
+                    setVisibleCount(20);
+                  }}
+                >
+                  <ComboboxTrigger
+                    render={
+                      <Button variant="outline" size="sm" className="h-7 min-w-[120px] max-w-[160px] justify-between font-normal text-xs px-2 py-1 bg-background border rounded px-1.5 py-0.5">
+                        <ComboboxValue placeholder="Chọn gốc">
+                          {selectedFocusOption?.label}
+                        </ComboboxValue>
+                      </Button>
+                    }
+                  />
+                  <ComboboxContent align="end">
+                    <ComboboxInput showTrigger={false} placeholder="Tìm thành viên..." className="h-8 text-xs" />
+                    <ComboboxEmpty>Không tìm thấy</ComboboxEmpty>
+                    <ComboboxList>
+                      {((item: any) => (
+                        <ComboboxItem key={item.value} value={item} className="text-xs py-1">
+                          {item.label}
+                        </ComboboxItem>
+                      )) as any}
+                      {filteredPeopleOptions.length > visibleCount && (
+                        <div className="p-1 border-t sticky bottom-0 bg-popover">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-[10px] h-6 justify-center"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setVisibleCount((prev) => prev + 30);
+                            }}
+                          >
+                            Xem thêm ({filteredPeopleOptions.length - visibleCount})
+                          </Button>
+                        </div>
+                      )}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+              </div>
+            );
+          })()}
 
           {/* Link copied toast */}
           {linkCopied && (
@@ -1371,13 +1435,13 @@ export default function TreeViewPage() {
               setTreeData((prev) =>
                 prev
                   ? {
-                      ...prev,
-                      families: prev.families.map((f) =>
-                        f.handle === familyHandle
-                          ? { ...f, children: newOrder }
-                          : f,
-                      ),
-                    }
+                    ...prev,
+                    families: prev.families.map((f) =>
+                      f.handle === familyHandle
+                        ? { ...f, children: newOrder }
+                        : f,
+                    ),
+                  }
                   : null,
               );
               supaUpdateFamilyChildren(familyHandle, newOrder);
@@ -1405,9 +1469,9 @@ export default function TreeViewPage() {
                 const families = prev.families.map((f) =>
                   f.handle === familyHandle
                     ? {
-                        ...f,
-                        children: f.children.filter((c) => c !== childHandle),
-                      }
+                      ...f,
+                      children: f.children.filter((c) => c !== childHandle),
+                    }
                     : f,
                 );
                 supaRemoveChild(childHandle, familyHandle, prev.families);
@@ -1418,11 +1482,11 @@ export default function TreeViewPage() {
               setTreeData((prev) =>
                 prev
                   ? {
-                      ...prev,
-                      people: prev.people.map((p) =>
-                        p.handle === handle ? { ...p, isLiving } : p,
-                      ),
-                    }
+                    ...prev,
+                    people: prev.people.map((p) =>
+                      p.handle === handle ? { ...p, isLiving } : p,
+                    ),
+                  }
                   : null,
               );
               supaUpdatePersonLiving(handle, isLiving);
@@ -1529,13 +1593,12 @@ function CardContextMenu({
           <div className="flex items-center gap-2">
             <div
               className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold
-                            ${
-                              person.isPatrilineal
-                                ? person.gender === 1
-                                  ? "bg-blue-100 text-blue-700"
-                                  : "bg-pink-100 text-pink-700"
-                                : "bg-slate-100 text-slate-500"
-                            }`}
+                            ${person.isPatrilineal
+                  ? person.gender === 1
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-pink-100 text-pink-700"
+                  : "bg-slate-100 text-slate-500"
+                }`}
             >
               {person.displayName
                 .split(" ")
@@ -2226,9 +2289,9 @@ function EditorPanel({
   // Find the family where this person is a parent
   const parentFamily = person
     ? treeData.families.find(
-        (f) =>
-          f.fatherHandle === person.handle || f.motherHandle === person.handle,
-      )
+      (f) =>
+        f.fatherHandle === person.handle || f.motherHandle === person.handle,
+    )
     : null;
 
   // Find the family where this person is a child
@@ -2239,17 +2302,17 @@ function EditorPanel({
   // Get parent person name
   const parentPerson = childOfFamily
     ? treeData.people.find(
-        (p) =>
-          p.handle === childOfFamily.fatherHandle ||
-          p.handle === childOfFamily.motherHandle,
-      )
+      (p) =>
+        p.handle === childOfFamily.fatherHandle ||
+        p.handle === childOfFamily.motherHandle,
+    )
     : null;
 
   // Children of the selected person's family
   const children = parentFamily
     ? (parentFamily.children
-        .map((ch) => treeData.people.find((p) => p.handle === ch))
-        .filter(Boolean) as TreeNode[])
+      .map((ch) => treeData.people.find((p) => p.handle === ch))
+      .filter(Boolean) as TreeNode[])
     : [];
 
   // All families (for "change parent" dropdown) with labels
@@ -2266,10 +2329,10 @@ function EditorPanel({
   // Filter parent families by search term
   const filteredParentFamilies = parentSearch.trim()
     ? parentFamiliesWithLabels.filter(
-        (f) =>
-          f.label.toLowerCase().includes(parentSearch.toLowerCase()) ||
-          f.handle.toLowerCase().includes(parentSearch.toLowerCase()),
-      )
+      (f) =>
+        f.label.toLowerCase().includes(parentSearch.toLowerCase()) ||
+        f.handle.toLowerCase().includes(parentSearch.toLowerCase()),
+    )
     : parentFamiliesWithLabels;
 
   const handleSave = async () => {
@@ -2384,11 +2447,10 @@ function EditorPanel({
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">Trạng thái:</span>
               <button
-                className={`text-xs px-2 py-0.5 rounded-full font-medium transition-colors ${
-                  person.isLiving
-                    ? "bg-green-100 text-green-700 hover:bg-green-200"
-                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                }`}
+                className={`text-xs px-2 py-0.5 rounded-full font-medium transition-colors ${person.isLiving
+                  ? "bg-green-100 text-green-700 hover:bg-green-200"
+                  : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                  }`}
                 onClick={() => onToggleLiving(person.handle, !person.isLiving)}
               >
                 {person.isLiving ? "● Còn sống" : "○ Đã mất"}
