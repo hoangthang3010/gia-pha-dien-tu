@@ -42,6 +42,12 @@ export class PeopleController {
     return buildPagedResponse(items, pagination.page, pagination.limit);
   }
 
+  @Get('tree')
+  @UseGuards(LoadClanIdsGuard)
+  async getTreeData(@ClanId() clanId: string) {
+    return this.peopleService.findTreeData(clanId);
+  }
+
   @Get(':handle')
   findOne(@Param('handle') handle: string) {
     return this.peopleService.findOne(handle);

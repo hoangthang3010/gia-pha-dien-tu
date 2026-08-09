@@ -4,12 +4,15 @@ import { Repository, ILike } from 'typeorm';
 import { CreatePersonDto } from './dto/create-person.dto';
 import { UpdatePersonDto } from './dto/update-person.dto';
 import { Person } from './entities/person.entity';
+import { Family } from '../families/entities/family.entity';
 
 @Injectable()
 export class PeopleService {
   constructor(
     @InjectRepository(Person)
     private readonly peopleRepository: Repository<Person>,
+    @InjectRepository(Family)
+    private readonly familiesRepository: Repository<Family>,
   ) {}
 
   async create(createPersonDto: CreatePersonDto, creatorId: string): Promise<Person> {
@@ -50,6 +53,17 @@ export class PeopleService {
 
     findOptions.where = where;
     return this.peopleRepository.find(findOptions);
+  }
+
+  async findTreeData(clanId?: string): Promise<{ people: Person[]; families: Family[] }> {
+    const where = clanId ? { clan_id: clanId } : {};
+
+    const [people, families] = await Promise.all([
+      this.peopleRepository.find({ where, order: { created_at: 'DESC' } }),
+      this.familiesRepository.find({ where, order: { created_at: 'DESC' } }),
+    ]);
+
+    return { people, families };
   }
 
   async findOne(handle: string): Promise<Person> {

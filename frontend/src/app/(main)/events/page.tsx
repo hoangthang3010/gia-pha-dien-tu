@@ -15,7 +15,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { createPaginationParams } from "@/lib/supabase-data";
+import { DEFAULT_PAGE_LIMIT } from "@/lib/supabase-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -220,7 +220,7 @@ export default function EventsPage() {
     setLoading(true);
     try {
       const { data } = await apiClient.get('/events', {
-        params: createPaginationParams(),
+        params: { limit: DEFAULT_PAGE_LIMIT, page: 1 },
       });
       if (data) {
         setEvents(Array.isArray(data) ? data : data.items ?? []);

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Newspaper } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import apiClient from "@/lib/api-client";
-import { createPaginationParams } from "@/lib/supabase-data";
+import { DEFAULT_PAGE_LIMIT } from "@/lib/supabase-data";
 import PostComposer from "@/app/(main)/feed/post-composer";
 import PostCard from "@/app/(main)/feed/post-card";
 import { IPost } from "@/app/(main)/feed/type";
@@ -22,7 +22,7 @@ export default function FeedPage() {
     setLoading(true);
     try {
       const { data } = await apiClient.get('/posts', {
-        params: createPaginationParams(),
+        params: { limit: DEFAULT_PAGE_LIMIT, page: 1 },
       });
       if (data) {
         setPosts(Array.isArray(data) ? data : data.items ?? []);

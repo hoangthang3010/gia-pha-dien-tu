@@ -43,7 +43,6 @@ function PersonCard({
   onToggleCollapse: (handle: string) => void;
 }) {
   const { x, y } = item || {};
-  console.log(item);
 
   const {
     gender = 1,

@@ -23,7 +23,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/components/auth-provider";
 import apiClient from "@/lib/api-client";
-import { createPaginationParams } from "@/lib/supabase-data";
+import { DEFAULT_PAGE_LIMIT } from "@/lib/supabase-data";
 
 interface MediaItem {
   id: string;
@@ -58,7 +58,7 @@ export default function MediaLibraryPage() {
   const fetchMedia = useCallback(async (state?: string) => {
     setLoading(true);
     try {
-      const params: any = createPaginationParams();
+      const params: any = { limit: DEFAULT_PAGE_LIMIT, page: 1 };
       if (state && state !== "all") {
         params.state = state;
       }
